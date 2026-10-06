@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Mahasiswa - Verifikasi Berkas Skripsi</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+  <!-- Top Academic Navigation -->
+  <header class="academic-navbar">
+    <div class="navbar-container">
+      <div class="brand-section">
+        <div class="university-crest">
+          <i class="fa-solid fa-graduation-cap"></i>
+        </div>
+        <div class="brand-title">
+          <span class="main-name">SIAKAD SKRIPSI</span>
+          <span class="sub-name">Portal Lembar Kerja Mahasiswa</span>
+        </div>
+      </div>
+      <div class="nav-user-meta">
+        <div class="user-badge">
+          <span class="user-name" id="navStudentName">Mahasiswa</span>
+          <span class="user-sub" id="navStudentNim">NIM: -</span>
+        </div>
+        <button class="btn-logout" onclick="handleLogout()">
+          <i class="fa-solid fa-right-from-bracket"></i> Keluar
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="dashboard-container">
+    
+    <!-- Student Profile Header Card -->
+    <div class="profile-card">
+      <div class="profile-main">
+        <div class="profile-avatar" id="avatarInitial">
+          M
+        </div>
+        <div class="profile-details">
+          <h2 id="studentFullName">Memuat Data Mahasiswa...</h2>
+          <div class="profile-chips">
+            <span class="chip chip-nim" id="chipNim"><i class="fa-solid fa-id-card"></i> NIM: -</span>
+            <span class="chip chip-prodi" id="chipProdi"><i class="fa-solid fa-book-open"></i> Teknik Informatika</span>
+            <span class="chip chip-angkatan" id="chipAngkatan"><i class="fa-solid fa-calendar"></i> Angkatan: -</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="thesis-box">
+        <div class="thesis-title-label">Judul Skripsi / Tugas Akhir</div>
+        <div class="thesis-title-text" id="studentThesisTitle">
+          Belum ada judul yang tercatat
+        </div>
+      </div>
+    </div>
+
+    <!-- Alert Real-Time Notification -->
+    <div id="realtimeNotification" class="alert-box" style="display: none; margin-bottom: 1.5rem;"></div>
+
+    <!-- Section Heading -->
+    <div style="margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <h3 style="font-size: 1.2rem; color: var(--primary-navy); font-weight: 700;">
+          <i class="fa-solid fa-folder-tree" style="color: var(--primary-blue); margin-right: 0.5rem;"></i>
+          Tahapan Berkas & Pengumpulan Google Drive
+        </h3>
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem;">
+          Pilih tahapan untuk melihat daftar berkas yang wajib ada di dalam folder Google Drive Anda.
+        </p>
+      </div>
+    </div>
+
+    <!-- Portals Accordion List Container -->
+    <div id="portalsContainer">
+      <!-- Portals will be rendered here dynamically -->
+      <div style="text-align: center; padding: 3rem; background: white; border-radius: 12px;">
+        <i class="fa-solid fa-spinner fa-spin fa-2x" style="color: var(--primary-blue);"></i>
+        <p style="margin-top: 1rem; color: var(--text-muted);">Memuat daftar tahapan berkas...</p>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="academic-footer">
+    Sistem Informasi Manajemen Skripsi & Verifikasi Berkas Terpadu • Universitas Bosowa Style
+  </footer>
+
+  <!-- Socket.io Client -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/mahasiswa.js"></script>
+</body>
+</html>

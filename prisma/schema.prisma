@@ -1,0 +1,45 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Admin {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  nama      String
+  role      String   @default("DOSEN")
+  createdAt DateTime @default(now())
+}
+
+model Mahasiswa {
+  id           Int          @id @default(autoincrement())
+  nim          String       @unique
+  nama         String
+  angkatan     String
+  prodi        String       @default("Teknik Informatika")
+  judulSkripsi String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  submissions  Submission[]
+}
+
+model Submission {
+  id           Int       @id @default(autoincrement())
+  mahasiswaId  Int
+  mahasiswa    Mahasiswa @relation(fields: [mahasiswaId], references: [id], onDelete: Cascade)
+  portal       String    // PORTAL_1, PORTAL_2, PORTAL_3
+  driveUrl     String?
+  status       String    @default("EMPTY") // EMPTY, PENDING, APPROVED, REVISION
+  catatanDosen String?
+  verifiedBy   String?
+  verifiedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([mahasiswaId, portal])
+}

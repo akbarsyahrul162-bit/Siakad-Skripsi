@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Dosen & Admin - Monitoring Berkas Skripsi</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+  <!-- Top Academic Navigation -->
+  <header class="academic-navbar">
+    <div class="navbar-container">
+      <div class="brand-section">
+        <div class="university-crest">
+          <i class="fa-solid fa-chalkboard-user"></i>
+        </div>
+        <div class="brand-title">
+          <span class="main-name">SIAKAD SKRIPSI</span>
+          <span class="sub-name">Direktori Monitoring & Verifikasi Dosen</span>
+        </div>
+      </div>
+      <div class="nav-user-meta">
+        <div class="user-badge">
+          <span class="user-name" id="navAdminName">Dr. Ir. Fitrah, M.T.</span>
+          <span class="user-sub" id="navAdminRole">Dosen Pembimbing</span>
+        </div>
+        <button class="btn-logout" onclick="handleAdminLogout()">
+          <i class="fa-solid fa-right-from-bracket"></i> Keluar
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="dashboard-container">
+
+    <!-- Quick Stats Cards -->
+    <div class="admin-stats-row">
+      <div class="stat-card">
+        <div class="stat-card-info">
+          <div class="stat-num" id="statTotalStudents">0</div>
+          <div class="stat-lbl">Mahasiswa di Whitelist</div>
+        </div>
+        <div class="stat-icon stat-icon-blue">
+          <i class="fa-solid fa-users"></i>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-card-info">
+          <div class="stat-num" id="statPendingReviews" style="color: #d97706;">0</div>
+          <div class="stat-lbl">Menunggu Pemeriksaan</div>
+        </div>
+        <div class="stat-icon stat-icon-yellow">
+          <i class="fa-solid fa-hourglass-half"></i>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-card-info">
+          <div class="stat-num" id="statApprovedReviews" style="color: #059669;">0</div>
+          <div class="stat-lbl">Tahapan Telah di-ACC</div>
+        </div>
+        <div class="stat-icon stat-icon-green">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolbar: Search, Filter, & Add Student Button -->
+    <div class="toolbar-card">
+      <div class="toolbar-filters">
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input 
+            type="text" 
+            id="searchStudentInput" 
+            placeholder="Cari berdasarkan Nama atau NIM mahasiswa..." 
+            oninput="handleSearchFilter()"
+          >
+        </div>
+
+        <select class="select-filter" id="filterAngkatan" onchange="handleSearchFilter()">
+          <option value="">Semua Angkatan</option>
+          <option value="2021">Angkatan 2021</option>
+          <option value="2020">Angkatan 2020</option>
+          <option value="2019">Angkatan 2019</option>
+        </select>
+      </div>
+
+      <button class="btn-add-student" onclick="openAddStudentModal()">
+        <i class="fa-solid fa-user-plus"></i>
+        <span>Tambah Mahasiswa ke Whitelist</span>
+      </button>
+    </div>
+
+    <!-- Table Directory Card -->
+    <div class="table-card">
+      <div style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+        <h3 style="font-size: 1rem; color: var(--primary-navy); font-weight: 700;">
+          <i class="fa-solid fa-table-list" style="margin-right: 0.4rem; color: var(--primary-blue);"></i>
+          Daftar Mahasiswa Bimbingan & Status Berkas
+        </h3>
+        <span style="font-size: 0.78rem; color: var(--text-muted);" id="studentsCountLabel">
+          Menampilkan 0 mahasiswa
+        </span>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="academic-table">
+          <thead>
+            <tr>
+              <th style="width: 50px;">No</th>
+              <th>Nama & NIM</th>
+              <th>Angkatan / Prodi</th>
+              <th style="width: 250px;">Judul Skripsi</th>
+              <th>Portal 1 (Sempro)</th>
+              <th>Portal 2 (Semhas)</th>
+              <th>Portal 3 (Skripsi)</th>
+              <th style="text-align: right; width: 140px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="studentTableBody">
+            <tr>
+              <td colspan="8" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                <i class="fa-solid fa-spinner fa-spin"></i> Memuat direktori mahasiswa...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL 1: Tambah Mahasiswa ke Whitelist -->
+  <div class="modal-overlay" id="addStudentModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-user-plus"></i> Tambah Mahasiswa ke Whitelist</h3>
+        <button class="btn-close-modal" onclick="closeAddStudentModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+          Mahasiswa yang didaftarkan akan <strong>seketika itu juga</strong> memiliki izin untuk login ke portal hanya dengan memasukkan NIM.
+        </p>
+
+        <form id="formAddStudent" onsubmit="handleCreateStudent(event)">
+          <div class="form-group">
+            <label for="newNim">Nomor Induk Mahasiswa (NIM) *</label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-id-card field-icon"></i>
+              <input type="text" id="newNim" placeholder="Contoh: 452021099" required autocomplete="off">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="newNama">Nama Lengkap Mahasiswa *</label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-user field-icon"></i>
+              <input type="text" id="newNama" placeholder="Contoh: Muhammad Ikhsan" required autocomplete="off">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label for="newAngkatan">Angkatan Masuk *</label>
+              <div class="input-with-icon">
+                <i class="fa-solid fa-calendar field-icon"></i>
+                <input type="text" id="newAngkatan" placeholder="Contoh: 2021" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="newProdi">Program Studi</label>
+              <div class="input-with-icon">
+                <i class="fa-solid fa-graduation-cap field-icon"></i>
+                <input type="text" id="newProdi" value="Teknik Informatika">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="newJudul">Rencana Judul Skripsi (Opsional)</label>
+            <textarea 
+              id="newJudul" 
+              class="verification-note-input" 
+              style="min-height: 70px;" 
+              placeholder="Contoh: Analisis Sentimen Opini Publik Menggunakan BERT..."
+            ></textarea>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+            <button type="button" class="btn-logout" style="background:#e2e8f0; color:#475569; border:none;" onclick="closeAddStudentModal()">
+              Batal
+            </button>
+            <button type="submit" class="btn-primary" style="width: auto; padding: 0.6rem 1.5rem;" id="btnSubmitNewStudent">
+              <span>Aktivasi Whitelist Mahasiswa</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: In-App Preview & Ruang Verifikasi Berkas -->
+  <div class="modal-overlay" id="verificationModal">
+    <div class="modal-container modal-container-large">
+      <div class="modal-header">
+        <div>
+          <h3 id="vModalStudentTitle">Periksa Berkas Skripsi Mahasiswa</h3>
+          <span style="font-size: 0.75rem; color: #cbd5e1;" id="vModalStudentMeta">NIM: - • Angkatan: -</span>
+        </div>
+        <button class="btn-close-modal" onclick="closeVerificationModal()">&times;</button>
+      </div>
+
+      <!-- Portal Tabs inside Modal -->
+      <div style="background: #f1f5f9; padding: 0.5rem 1.5rem; display: flex; gap: 0.5rem; border-bottom: 1px solid var(--border-color);">
+        <button type="button" class="tab-btn active" id="vTabPortal1" onclick="switchVerificationPortal('PORTAL_1')">
+          Portal 1: Pasca Sempro
+        </button>
+        <button type="button" class="tab-btn" id="vTabPortal2" onclick="switchVerificationPortal('PORTAL_2')">
+          Portal 2: Semhas
+        </button>
+        <button type="button" class="tab-btn" id="vTabPortal3" onclick="switchVerificationPortal('PORTAL_3')">
+          Portal 3: Skripsi / Tutup
+        </button>
+      </div>
+
+      <!-- Split Layout: Screen Left (Drive Preview) | Screen Right (Dosen Controls) -->
+      <div class="preview-layout">
+        
+        <!-- Left: In-App Document Preview Screen -->
+        <div class="preview-screen-col">
+          <div class="preview-toolbar">
+            <span id="previewToolbarTitle"><i class="fa-brands fa-google-drive"></i> Pratinjau Terpadu Google Drive</span>
+            <a href="#" id="previewExternalLink" target="_blank" rel="noopener noreferrer" style="color: #93c5fd; text-decoration: none; font-weight: 600;">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka Tab Baru
+            </a>
+          </div>
+
+          <div id="previewEmptyPlaceholder" class="preview-empty-placeholder">
+            <i class="fa-regular fa-folder-open fa-3x" style="margin-bottom: 1rem; color: #475569;"></i>
+            <h4>Mahasiswa Belum Mengunggah Tautan Drive</h4>
+            <p style="font-size: 0.8rem; margin-top: 0.4rem; max-width: 320px;">
+              Tautan Google Drive untuk tahapan ini belum diisi oleh mahasiswa.
+            </p>
+          </div>
+
+          <iframe id="previewIframe" class="preview-iframe" style="display: none;" title="Google Drive Preview"></iframe>
+        </div>
+
+        <!-- Right: Verification Controls Panel -->
+        <div class="verification-panel-col">
+          <div class="v-student-info">
+            <h4 id="vCurrentPortalName">Portal 1: Pasca Seminar Proposal</h4>
+            <p id="vCurrentPortalDesc">Deskripsi tahapan persyaratan skripsi.</p>
+            <div style="margin-top: 0.6rem; display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Status Saat Ini:</span>
+              <span class="badge-status badge-EMPTY" id="vCurrentStatusBadge">Belum Diisi</span>
+            </div>
+          </div>
+
+          <!-- Document Checklist Guidance -->
+          <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.85rem;">
+            <div style="font-size: 0.78rem; font-weight: 700; color: var(--primary-navy); margin-bottom: 0.4rem;">
+              <i class="fa-solid fa-list-check"></i> Berkas yang Harus Ada di Drive:
+            </div>
+            <ul id="vChecklistDocs" style="list-style: none; font-size: 0.75rem; color: var(--text-main); display: flex; flex-direction: column; gap: 0.35rem;">
+              <!-- Dynamic checklist -->
+            </ul>
+          </div>
+
+          <!-- Decision & Correction Notes Card -->
+          <div class="decision-card">
+            <h5>Keputusan Verifikasi Dosen:</h5>
+            
+            <div class="decision-options">
+              <button type="button" class="decision-btn btn-acc" id="btnDecisionAcc" onclick="setDecision('APPROVED')">
+                <i class="fa-solid fa-circle-check"></i> Setujui (ACC / Valid)
+              </button>
+              <button type="button" class="decision-btn btn-rev" id="btnDecisionRev" onclick="setDecision('REVISION')">
+                <i class="fa-solid fa-triangle-exclamation"></i> Minta Perbaikan (Revisi)
+              </button>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0.85rem;">
+              <label for="vCatatanDosen" style="font-size: 0.78rem; font-weight: 600; color: var(--text-main);">
+                Catatan Perbaikan / Koreksi untuk Mahasiswa:
+              </label>
+              <textarea 
+                id="vCatatanDosen" 
+                class="verification-note-input" 
+                placeholder="Contoh: Berkas Turnitin belum terlampir, mohon unggah ulang..."
+              ></textarea>
+            </div>
+
+            <button type="button" class="btn-primary" id="btnSaveVerification" onclick="saveVerificationAction()">
+              <i class="fa-solid fa-paper-plane"></i>
+              <span>Simpan & Kirim Verifikasi</span>
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="academic-footer">
+    Sistem Informasi Manajemen Skripsi & Verifikasi Berkas Terpadu • Universitas Bosowa Style
+  </footer>
+
+  <!-- Socket.io Client -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>
