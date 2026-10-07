@@ -54,8 +54,13 @@
         </div>
       </div>
 
-      <div class="thesis-box">
-        <div class="thesis-title-label">Judul Skripsi / Tugas Akhir</div>
+      <div class="thesis-box" onclick="openEditJudulModal()" title="Klik untuk mengubah rencana judul skripsi Anda" style="cursor: pointer; position: relative; transition: all 0.2s;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
+          <div class="thesis-title-label">Judul Skripsi / Tugas Akhir</div>
+          <span style="font-size: 0.72rem; color: #0284c7; font-weight: 700; background: #e0f2fe; padding: 0.2rem 0.55rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.3rem;">
+            <i class="fa-solid fa-pen-to-square"></i> Edit Judul
+          </span>
+        </div>
         <div class="thesis-title-text" id="studentThesisTitle">
           Belum ada judul yang tercatat
         </div>

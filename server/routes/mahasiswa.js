@@ -136,4 +136,45 @@ router.post('/submit', async (req, res) => {
   }
 });
 
+// Mahasiswa memperbarui judul skripsinya sendiri
+router.put('/judul', async (req, res) => {
+  try {
+    const mahasiswaId = req.user.id;
+    const { judulSkripsi } = req.body;
+
+    const cleanJudul = judulSkripsi ? String(judulSkripsi).trim() : null;
+
+    const updated = await prisma.mahasiswa.update({
+      where: { id: mahasiswaId },
+      data: {
+        judulSkripsi: cleanJudul,
+      },
+    });
+
+    // Real-time broadcast ke Admin / Dosen
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('mahasiswa_title_updated', {
+        id: updated.id,
+        nim: updated.nim,
+        nama: updated.nama,
+        judulSkripsi: updated.judulSkripsi,
+      });
+      io.emit('whitelist_updated', {
+        action: 'UPDATED',
+        mahasiswa: updated,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Judul skripsi berhasil diperbarui!',
+      judulSkripsi: updated.judulSkripsi,
+    });
+  } catch (error) {
+    console.error('Error update judul skripsi:', error);
+    return res.status(500).json({ success: false, message: 'Gagal memperbarui judul skripsi.' });
+  }
+});
+
 module.exports = router;

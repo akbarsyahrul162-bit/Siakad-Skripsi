@@ -211,6 +211,82 @@ function renderStudentProfile(mhs) {
   document.getElementById('avatarInitial').textContent = initials || 'M';
 }
 
+// Modal Edit Judul Skripsi oleh Mahasiswa
+async function openEditJudulModal() {
+  const currentJudul = currentStudent ? (currentStudent.judulSkripsi || '') : '';
+
+  const { value: newJudul } = await Swal.fire({
+    title: '<i class="fa-solid fa-graduation-cap" style="color: #0284c7;"></i> Judul Skripsi / Tugas Akhir',
+    html: `
+      <div style="text-align: left; font-size: 0.85rem;">
+        <p style="color: #64748b; margin-bottom: 0.75rem;">
+          Masukkan rencana atau perubahan judul skripsi Anda. Perubahan akan langsung tersinkronisasi ke Dosen Pembimbing secara real-time.
+        </p>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label style="font-weight: 700; color: #1e293b; display: block; margin-bottom: 0.35rem;">
+            Rencana / Judul Skripsi Lengkap:
+          </label>
+          <textarea id="swal-student-judul" class="swal2-textarea" style="width: 100%; margin: 0; box-sizing: border-box; font-size: 0.85rem; min-height: 90px; line-height: 1.4; border-radius: 8px;" placeholder="Contoh: Rancang Bangun Sistem Informasi Monitoring Skripsi Berbasis Web Menggunakan Node.js dan PostgreSQL...">${escapeHtml(currentJudul)}</textarea>
+        </div>
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: '<i class="fa-solid fa-floppy-disk"></i> Simpan Judul',
+    cancelButtonText: 'Batal',
+    confirmButtonColor: '#0d2346',
+    cancelButtonColor: '#64748b',
+    preConfirm: () => {
+      const val = document.getElementById('swal-student-judul').value.trim();
+      return val;
+    }
+  });
+
+  if (newJudul === undefined) return;
+
+  try {
+    const res = await fetch('/api/mahasiswa/judul', {
+      method: 'PUT',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ judulSkripsi: newJudul }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menyimpan',
+        text: data.message || 'Gagal mengubah judul skripsi.',
+        confirmButtonColor: '#0d2346'
+      });
+      return;
+    }
+
+    if (currentStudent) {
+      currentStudent.judulSkripsi = data.judulSkripsi;
+    }
+
+    document.getElementById('studentThesisTitle').textContent = data.judulSkripsi || 'Judul skripsi belum diinput';
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Judul Skripsi Disimpan!',
+      text: 'Judul skripsi Anda telah diperbarui dan langsung tersinkronisasi ke Dosen Pembimbing.',
+      timer: 2500,
+      showConfirmButton: false
+    });
+  } catch (err) {
+    console.error(err);
+    Swal.fire({
+      icon: 'error',
+      title: 'Koneksi Gagal',
+      text: 'Gagal menghubungi server.',
+      confirmButtonColor: '#0d2346'
+    });
+  }
+}
+
 // Render portals accordion
 function renderPortals(portals) {
   const container = document.getElementById('portalsContainer');

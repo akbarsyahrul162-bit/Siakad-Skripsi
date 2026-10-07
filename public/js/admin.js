@@ -583,15 +583,42 @@ function renderRequirementsEditor() {
   container.innerHTML = (portal.berkas || [])
     .map(
       (b, idx) => `
-    <div class="doc-req-item" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem; display: flex; gap: 0.75rem; align-items: center;">
-      <div style="font-weight: 700; color: #64748b; font-size: 0.9rem; min-width: 24px;">#${idx + 1}</div>
-      <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-        <input type="text" class="input-portal-single req-doc-name" value="${escapeHtml(b.nama)}" placeholder="Nama Syarat Berkas" style="font-size: 0.82rem; padding: 0.5rem 0.75rem;">
-        <input type="text" class="input-portal-single req-doc-desc" value="${escapeHtml(b.keterangan)}" placeholder="Keterangan / Ketentuan" style="font-size: 0.82rem; padding: 0.5rem 0.75rem;">
+    <div class="doc-req-item" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.9rem; display: flex; flex-direction: column; gap: 0.6rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-weight: 700; color: #1e293b; font-size: 0.85rem;">
+          <i class="fa-solid fa-file-lines" style="color: #0284c7; margin-right: 0.3rem;"></i> Dokumen #${idx + 1}
+        </span>
+        <button type="button" onclick="removeDocRequirementRow(this)" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; padding: 0.3rem 0.65rem; cursor: pointer; font-size: 0.75rem; font-weight: 600;" title="Hapus Dokumen">
+          <i class="fa-solid fa-trash-can"></i> Hapus
+        </button>
       </div>
-      <button type="button" onclick="removeDocRequirementRow(this)" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; padding: 0.45rem 0.65rem; cursor: pointer;" title="Hapus Dokumen">
-        <i class="fa-solid fa-trash-can"></i>
-      </button>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
+        <div>
+          <label style="font-size: 0.72rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">
+            Nama Syarat Dokumen *
+          </label>
+          <input type="text" class="input-portal-single req-doc-name" value="${escapeHtml(b.nama)}" placeholder="Contoh: Kartu Logbook / Bukti Bimbingan" style="font-size: 0.82rem; padding: 0.45rem 0.65rem;">
+        </div>
+        <div>
+          <label style="font-size: 0.72rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">
+            Keterangan / Ketentuan Berkas
+          </label>
+          <input type="text" class="input-portal-single req-doc-desc" value="${escapeHtml(b.keterangan)}" placeholder="Contoh: Telah disetujui tim pembimbing" style="font-size: 0.82rem; padding: 0.45rem 0.65rem;">
+        </div>
+      </div>
+
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+          <label style="font-size: 0.72rem; font-weight: 700; color: #0369a1;">
+            <i class="fa-solid fa-file-signature"></i> Format Standar Nama File (Google Drive) *
+          </label>
+          <span style="font-size: 0.68rem; color: #64748b;">
+            Gunakan <code>[NIM]</code> untuk nomor mahasiswa
+          </span>
+        </div>
+        <input type="text" class="input-portal-single req-doc-format" value="${escapeHtml(b.formatContoh || `0${idx + 1}_${b.nama.replace(/[^a-zA-Z0-9]/g, '_')}_[NIM].pdf`)}" placeholder="Contoh: 0${idx + 1}_Dokumen_[NIM].pdf" style="font-size: 0.82rem; padding: 0.45rem 0.65rem; font-family: monospace; font-weight: 600; color: #0284c7; background: #ffffff; border-color: #bae6fd;">
+      </div>
     </div>
   `
     )
@@ -601,18 +628,46 @@ function renderRequirementsEditor() {
 function addDocRequirementRow() {
   const container = document.getElementById('reqDocsContainer');
   const count = container.children.length + 1;
+  const numPad = count < 10 ? `0${count}` : `${count}`;
   const div = document.createElement('div');
   div.className = 'doc-req-item';
-  div.style.cssText = 'background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem; display: flex; gap: 0.75rem; align-items: center;';
+  div.style.cssText = 'background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.9rem; display: flex; flex-direction: column; gap: 0.6rem;';
   div.innerHTML = `
-    <div style="font-weight: 700; color: #64748b; font-size: 0.9rem; min-width: 24px;">#${count}</div>
-    <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-      <input type="text" class="input-portal-single req-doc-name" placeholder="Nama Dokumen Baru" style="font-size: 0.82rem; padding: 0.5rem 0.75rem;">
-      <input type="text" class="input-portal-single req-doc-desc" placeholder="Keterangan / Ketentuan" style="font-size: 0.82rem; padding: 0.5rem 0.75rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-weight: 700; color: #1e293b; font-size: 0.85rem;">
+        <i class="fa-solid fa-file-lines" style="color: #0284c7; margin-right: 0.3rem;"></i> Dokumen #${count}
+      </span>
+      <button type="button" onclick="removeDocRequirementRow(this)" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; padding: 0.3rem 0.65rem; cursor: pointer; font-size: 0.75rem; font-weight: 600;" title="Hapus Dokumen">
+        <i class="fa-solid fa-trash-can"></i> Hapus
+      </button>
     </div>
-    <button type="button" onclick="removeDocRequirementRow(this)" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; padding: 0.45rem 0.65rem; cursor: pointer;" title="Hapus Dokumen">
-      <i class="fa-solid fa-trash-can"></i>
-    </button>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
+      <div>
+        <label style="font-size: 0.72rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">
+          Nama Syarat Dokumen *
+        </label>
+        <input type="text" class="input-portal-single req-doc-name" placeholder="Nama Dokumen Baru" style="font-size: 0.82rem; padding: 0.45rem 0.65rem;">
+      </div>
+      <div>
+        <label style="font-size: 0.72rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">
+          Keterangan / Ketentuan Berkas
+        </label>
+        <input type="text" class="input-portal-single req-doc-desc" placeholder="Keterangan / Ketentuan" style="font-size: 0.82rem; padding: 0.45rem 0.65rem;">
+      </div>
+    </div>
+
+    <div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+        <label style="font-size: 0.72rem; font-weight: 700; color: #0369a1;">
+          <i class="fa-solid fa-file-signature"></i> Format Standar Nama File (Google Drive) *
+        </label>
+        <span style="font-size: 0.68rem; color: #64748b;">
+          Gunakan <code>[NIM]</code> untuk nomor mahasiswa
+        </span>
+      </div>
+      <input type="text" class="input-portal-single req-doc-format" value="${numPad}_Dokumen_Baru_[NIM].pdf" placeholder="Contoh: ${numPad}_Dokumen_Baru_[NIM].pdf" style="font-size: 0.82rem; padding: 0.45rem 0.65rem; font-family: monospace; font-weight: 600; color: #0284c7; background: #ffffff; border-color: #bae6fd;">
+    </div>
   `;
   container.appendChild(div);
 }
@@ -788,12 +843,15 @@ async function savePortalRequirements() {
   docRows.forEach((r, idx) => {
     const docName = r.querySelector('.req-doc-name').value.trim();
     const docDesc = r.querySelector('.req-doc-desc').value.trim();
+    const docFormatInput = r.querySelector('.req-doc-format');
+    const docFormat = docFormatInput ? docFormatInput.value.trim() : '';
+
     if (docName) {
       berkas.push({
         nomor: idx + 1,
         nama: docName,
         keterangan: docDesc,
-        formatContoh: `0${idx + 1}_${docName.replace(/[^a-zA-Z0-9]/g, '_')}_[NIM].pdf`
+        formatContoh: docFormat || `0${idx + 1}_${docName.replace(/[^a-zA-Z0-9]/g, '_')}_[NIM].pdf`
       });
     }
   });
