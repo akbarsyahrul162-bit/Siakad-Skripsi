@@ -61,6 +61,16 @@ function initSocket() {
   }
 }
 
+// Helper untuk menyertakan token otentikasi
+function getAuthHeaders(extra = {}) {
+  const token = localStorage.getItem('token');
+  const headers = { ...extra };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 // Load students directory from server
 async function loadStudents(showLoading = true) {
   const tbody = document.getElementById('studentTableBody');
@@ -75,13 +85,9 @@ async function loadStudents(showLoading = true) {
   }
 
   try {
-    const token = localStorage.getItem('token');
-    const headers = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const res = await fetch('/api/admin/mahasiswa', { headers });
+    const res = await fetch('/api/admin/mahasiswa', {
+      headers: getAuthHeaders(),
+    });
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) {
         window.location.href = '/index.html';
@@ -250,7 +256,7 @@ async function handleCreateStudent(event) {
   try {
     const res = await fetch('/api/admin/mahasiswa', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ nim, nama, angkatan, prodi, judulSkripsi }),
     });
 
@@ -283,7 +289,10 @@ async function handleDeleteStudent(id, name) {
   }
 
   try {
-    const res = await fetch(`/api/admin/mahasiswa/${id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/admin/mahasiswa/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
     const data = await res.json();
     if (res.ok) {
       loadStudents();
@@ -300,7 +309,9 @@ async function handleDeleteStudent(id, name) {
 // ==========================================
 async function openVerificationModal(studentId, switchTabToFirst = true) {
   try {
-    const res = await fetch(`/api/admin/mahasiswa/${studentId}/berkas`);
+    const res = await fetch(`/api/admin/mahasiswa/${studentId}/berkas`, {
+      headers: getAuthHeaders(),
+    });
     if (!res.ok) throw new Error('Gagal mengambil detail');
 
     const data = await res.json();
@@ -469,7 +480,7 @@ async function saveVerificationAction() {
   try {
     const res = await fetch('/api/admin/verify', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         mahasiswaId: currentViewingStudent.id,
         portal: activePortalKey,

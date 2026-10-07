@@ -76,6 +76,16 @@ function showRealtimeAlert(data) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// Helper otentikasi token
+function getAuthHeaders(extra = {}) {
+  const token = localStorage.getItem('token');
+  const headers = { ...extra };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 // Load data from server
 async function loadPortalData(showLoading = true) {
   const container = document.getElementById('portalsContainer');
@@ -89,13 +99,9 @@ async function loadPortalData(showLoading = true) {
   }
 
   try {
-    const token = localStorage.getItem('token');
-    const headers = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const res = await fetch('/api/mahasiswa/portal-data', { headers });
+    const res = await fetch('/api/mahasiswa/portal-data', {
+      headers: getAuthHeaders(),
+    });
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) {
         window.location.href = '/index.html';
@@ -323,7 +329,7 @@ async function handleSaveDriveLink(event, portalId) {
   try {
     const res = await fetch('/api/mahasiswa/submit', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ portal: portalId, driveUrl }),
     });
 
