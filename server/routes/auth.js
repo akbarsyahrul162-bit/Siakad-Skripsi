@@ -51,6 +51,7 @@ router.post('/login-unified', async (req, res) => {
       return res.json({
         success: true,
         role: 'DOSEN',
+        token: token,
         message: 'Akses Dosen / Admin Berhasil! Mengalihkan ke dashboard monitoring...',
         redirect: '/admin.html',
       });
@@ -96,6 +97,7 @@ router.post('/login-unified', async (req, res) => {
     return res.json({
       success: true,
       role: 'MAHASISWA',
+      token: token,
       message: `Selamat datang, ${mahasiswa.nama}! Mengalihkan ke dashboard...`,
       redirect: '/mahasiswa.html',
     });

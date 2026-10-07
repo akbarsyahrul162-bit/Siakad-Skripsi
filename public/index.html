@@ -265,6 +265,11 @@
           return;
         }
 
+        // Simpan token ke localStorage jika ada
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+        }
+
         // Jika login berhasil, langsung alihkan ke halaman tujuan seketika tanpa menampilkan banner hijau
         window.location.href = data.redirect || (data.role === 'DOSEN' ? '/admin.html' : '/mahasiswa.html');
 

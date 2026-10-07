@@ -89,7 +89,13 @@ async function loadPortalData(showLoading = true) {
   }
 
   try {
-    const res = await fetch('/api/mahasiswa/portal-data');
+    const token = localStorage.getItem('token');
+    const headers = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch('/api/mahasiswa/portal-data', { headers });
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) {
         window.location.href = '/index.html';
