@@ -91,15 +91,17 @@ app.get('*', (req, res, next) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
-// Port Server
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`====================================================`);
-  console.log(`🎓 PORTAL AKADEMIK SIAKAD - SISTEM SKRIPSI AKTIF`);
-  console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
-  console.log(`🛡️  Keamanan: Helmet + Rate Limiter + Anti-SQL Injection + Whitelist`);
-  console.log(`⚡ Real-Time Sync: Aktif via Socket.io`);
-  console.log(`====================================================`);
-});
+// Port Server (Hanya dijalankan jika BUKAN di lingkungan Vercel Serverless)
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 3000;
+  server.listen(PORT, () => {
+    console.log(`====================================================`);
+    console.log(`🎓 PORTAL AKADEMIK SIAKAD - SISTEM SKRIPSI AKTIF`);
+    console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
+    console.log(`🛡️  Keamanan: Helmet + Rate Limiter + Anti-SQL Injection + Whitelist`);
+    console.log(`⚡ Real-Time Sync: Aktif via Socket.io`);
+    console.log(`====================================================`);
+  });
+}
 
 module.exports = app;
