@@ -101,3 +101,5 @@ server.listen(PORT, () => {
   console.log(`⚡ Real-Time Sync: Aktif via Socket.io`);
   console.log(`====================================================`);
 });
+
+module.exports = app;
