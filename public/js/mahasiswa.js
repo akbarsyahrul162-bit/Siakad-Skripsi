@@ -47,6 +47,11 @@ function initSocket() {
         loadPortalData(false);
       }
     });
+
+    // Real-time listener: ketika dosen mengubah daftar syarat dokumen
+    socket.on('portals_config_updated', () => {
+      loadPortalData(false);
+    });
   } catch (err) {
     console.error('Socket error:', err);
   }
@@ -336,7 +341,12 @@ async function handleSaveDriveLink(event, portalId) {
     const data = await res.json();
 
     if (!res.ok) {
-      alert(data.message || 'Gagal menyimpan tautan berkas.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menyimpan',
+        text: data.message || 'Gagal menyimpan tautan berkas.',
+        confirmButtonColor: '#0d2346'
+      });
       btn.disabled = false;
       btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>Simpan / Perbarui Tautan</span>`;
       return;
@@ -349,6 +359,14 @@ async function handleSaveDriveLink(event, portalId) {
       badge.innerHTML = `<i class="fa-solid fa-hourglass-half"></i> MENUNGGU PEMERIKSAAN`;
     }
 
+    Swal.fire({
+      icon: 'success',
+      title: 'Tautan Tersimpan!',
+      text: 'Link Google Drive Anda telah berhasil dikirim ke Dosen Pembimbing untuk diperiksa.',
+      timer: 2500,
+      showConfirmButton: false
+    });
+
     btn.disabled = false;
     btn.innerHTML = `<i class="fa-solid fa-check"></i> <span>Tersimpan!</span>`;
     setTimeout(() => {
@@ -359,7 +377,12 @@ async function handleSaveDriveLink(event, portalId) {
     loadPortalData(false);
   } catch (err) {
     console.error(err);
-    alert('Gagal menghubungkan ke server.');
+    Swal.fire({
+      icon: 'error',
+      title: 'Koneksi Gagal',
+      text: 'Gagal menghubungkan ke server.',
+      confirmButtonColor: '#0d2346'
+    });
     btn.disabled = false;
     btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>Simpan / Perbarui Tautan</span>`;
   }
@@ -367,8 +390,21 @@ async function handleSaveDriveLink(event, portalId) {
 
 // Logout
 async function handleLogout() {
-  if (!confirm('Apakah Anda yakin ingin keluar dari portal?')) return;
+  const result = await Swal.fire({
+    title: 'Keluar dari Portal?',
+    text: 'Apakah Anda yakin ingin mengakhiri sesi mahasiswa?',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#0d2346',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: 'Ya, Keluar',
+    cancelButtonText: 'Batal'
+  });
+
+  if (!result.isConfirmed) return;
+
   try {
+    localStorage.removeItem('token');
     await fetch('/api/auth/logout', { method: 'POST' });
     window.location.href = '/index.html';
   } catch (err) {

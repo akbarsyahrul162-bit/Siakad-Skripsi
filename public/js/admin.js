@@ -213,9 +213,12 @@ function renderTable(students) {
           </span>
         </td>
         <td style="text-align: right;">
-          <div style="display: inline-flex; align-items: center; gap: 0.4rem;">
+          <div style="display: inline-flex; align-items: center; gap: 0.35rem;">
             <button class="btn-view-berkas" onclick="openVerificationModal(${m.id})" title="Periksa Berkas & Drive">
               <i class="fa-solid fa-folder-open"></i> Periksa
+            </button>
+            <button class="btn-edit-student" onclick="openEditStudentModal(${m.id})" title="Edit Data Mahasiswa" style="padding: 0.4rem 0.65rem; background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600;">
+              <i class="fa-solid fa-pen-to-square"></i>
             </button>
             <button class="btn-delete-student" onclick="handleDeleteStudent(${m.id}, '${escapeHtml(m.nama)}')" title="Hapus dari Whitelist">
               <i class="fa-regular fa-trash-can"></i>
@@ -227,6 +230,243 @@ function renderTable(students) {
   });
 
   tbody.innerHTML = html;
+}
+
+// ==========================================
+// MODAL: EDIT MAHASISWA
+// ==========================================
+function openEditStudentModal(id) {
+  const m = allStudents.find((s) => s.id === id);
+  if (!m) return;
+
+  document.getElementById('editStudentId').value = m.id;
+  document.getElementById('editNim').value = m.nim;
+  document.getElementById('editNama').value = m.nama;
+  document.getElementById('editAngkatan').value = m.angkatan;
+  document.getElementById('editProdi').value = m.prodi || 'Teknik Informatika';
+  document.getElementById('editJudul').value = m.judulSkripsi || '';
+
+  document.getElementById('editStudentModal').style.display = 'flex';
+}
+
+function closeEditStudentModal() {
+  document.getElementById('editStudentModal').style.display = 'none';
+}
+
+async function handleUpdateStudent(event) {
+  event.preventDefault();
+  const id = document.getElementById('editStudentId').value;
+  const nim = document.getElementById('editNim').value.trim();
+  const nama = document.getElementById('editNama').value.trim();
+  const angkatan = document.getElementById('editAngkatan').value.trim();
+  const prodi = document.getElementById('editProdi').value.trim();
+  const judulSkripsi = document.getElementById('editJudul').value.trim();
+  const btn = document.getElementById('btnSubmitEditStudent');
+
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`;
+
+  try {
+    const res = await fetch(`/api/admin/mahasiswa/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ nim, nama, angkatan, prodi, judulSkripsi }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Memperbarui',
+        text: data.message || 'Gagal mengubah data mahasiswa.',
+        confirmButtonColor: '#0d2346'
+      });
+      btn.disabled = false;
+      btn.innerHTML = `<span>Simpan Perubahan</span>`;
+      return;
+    }
+
+    closeEditStudentModal();
+    btn.disabled = false;
+    btn.innerHTML = `<span>Simpan Perubahan</span>`;
+    loadStudents();
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Perubahan Tersimpan!',
+      text: data.message,
+      confirmButtonColor: '#164e87',
+      timer: 2000,
+      showConfirmButton: false
+    });
+  } catch (err) {
+    console.error(err);
+    Swal.fire({
+      icon: 'error',
+      title: 'Koneksi Terputus',
+      text: 'Terjadi kesalahan koneksi ke server.',
+      confirmButtonColor: '#0d2346'
+    });
+    btn.disabled = false;
+    btn.innerHTML = `<span>Simpan Perubahan</span>`;
+  }
+}
+
+// ==========================================
+// MODAL: KELOLA PERSYARATAN BERKAS PORTAL
+// ==========================================
+let globalPortalsConfig = {};
+let activeReqPortalKey = 'PORTAL_1';
+
+async function openRequirementsModal() {
+  try {
+    const res = await fetch('/api/admin/portals-config', {
+      headers: getAuthHeaders(),
+    });
+    const data = await res.json();
+    if (data.success && data.portals) {
+      globalPortalsConfig = data.portals;
+      activeReqPortalKey = 'PORTAL_1';
+      renderRequirementsEditor();
+      document.getElementById('requirementsModal').style.display = 'flex';
+    }
+  } catch (e) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Gagal Memuat Persyaratan',
+      text: 'Tidak dapat mengambil konfigurasi portal.',
+      confirmButtonColor: '#0d2346'
+    });
+  }
+}
+
+function closeRequirementsModal() {
+  document.getElementById('requirementsModal').style.display = 'none';
+}
+
+function switchReqPortal(portalKey) {
+  activeReqPortalKey = portalKey;
+  document.getElementById('reqTabPortal1').className = `tab-btn ${portalKey === 'PORTAL_1' ? 'active' : ''}`;
+  document.getElementById('reqTabPortal2').className = `tab-btn ${portalKey === 'PORTAL_2' ? 'active' : ''}`;
+  document.getElementById('reqTabPortal3').className = `tab-btn ${portalKey === 'PORTAL_3' ? 'active' : ''}`;
+  renderRequirementsEditor();
+}
+
+function renderRequirementsEditor() {
+  const portal = globalPortalsConfig[activeReqPortalKey];
+  if (!portal) return;
+
+  document.getElementById('reqPortalName').value = portal.nama || '';
+  document.getElementById('reqPortalDesc').value = portal.deskripsi || '';
+
+  const container = document.getElementById('reqDocsContainer');
+  container.innerHTML = (portal.berkas || [])
+    .map(
+      (b, idx) => `
+    <div class="doc-req-item" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem; display: flex; gap: 0.75rem; align-items: center;">
+      <div style="font-weight: 700; color: #64748b; font-size: 0.9rem; min-width: 24px;">#${idx + 1}</div>
+      <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+        <input type="text" class="input-portal-single req-doc-name" value="${escapeHtml(b.nama)}" placeholder="Nama Syarat Berkas" style="font-size: 0.82rem; padding: 0.5rem 0.75rem;">
+        <input type="text" class="input-portal-single req-doc-desc" value="${escapeHtml(b.keterangan)}" placeholder="Keterangan / Ketentuan" style="font-size: 0.82rem; padding: 0.5rem 0.75rem;">
+      </div>
+      <button type="button" onclick="removeDocRequirementRow(this)" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; padding: 0.45rem 0.65rem; cursor: pointer;">
+        <i class="fa-solid fa-trash-can"></i>
+      </button>
+    </div>
+  `
+    )
+    .join('');
+}
+
+function addDocRequirementRow() {
+  const container = document.getElementById('reqDocsContainer');
+  const count = container.children.length + 1;
+  const div = document.createElement('div');
+  div.className = 'doc-req-item';
+  div.style.cssText = 'background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem; display: flex; gap: 0.75rem; align-items: center;';
+  div.innerHTML = `
+    <div style="font-weight: 700; color: #64748b; font-size: 0.9rem; min-width: 24px;">#${count}</div>
+    <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+      <input type="text" class="input-portal-single req-doc-name" placeholder="Nama Dokumen Baru" style="font-size: 0.82rem; padding: 0.5rem 0.75rem;">
+      <input type="text" class="input-portal-single req-doc-desc" placeholder="Keterangan / Ketentuan" style="font-size: 0.82rem; padding: 0.5rem 0.75rem;">
+    </div>
+    <button type="button" onclick="removeDocRequirementRow(this)" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; padding: 0.45rem 0.65rem; cursor: pointer;">
+      <i class="fa-solid fa-trash-can"></i>
+    </button>
+  `;
+  container.appendChild(div);
+}
+
+function removeDocRequirementRow(btn) {
+  const row = btn.closest('.doc-req-item');
+  if (row) row.remove();
+}
+
+async function savePortalRequirements() {
+  const nama = document.getElementById('reqPortalName').value.trim();
+  const deskripsi = document.getElementById('reqPortalDesc').value.trim();
+  const docRows = document.querySelectorAll('#reqDocsContainer .doc-req-item');
+
+  const berkas = [];
+  docRows.forEach((r, idx) => {
+    const docName = r.querySelector('.req-doc-name').value.trim();
+    const docDesc = r.querySelector('.req-doc-desc').value.trim();
+    if (docName) {
+      berkas.push({
+        nomor: idx + 1,
+        nama: docName,
+        keterangan: docDesc,
+        formatContoh: `0${idx + 1}_${docName.replace(/[^a-zA-Z0-9]/g, '_')}_[NIM].pdf`
+      });
+    }
+  });
+
+  const saveBtn = document.getElementById('btnSaveReqPortal');
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`;
+
+  try {
+    const res = await fetch(`/api/admin/portals-config/${activeReqPortalKey}`, {
+      method: 'PUT',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ nama, deskripsi, berkas }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menyimpan',
+        text: data.message || 'Gagal menyimpan persyaratan.',
+        confirmButtonColor: '#0d2346'
+      });
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>Simpan Persyaratan Portal</span>`;
+      return;
+    }
+
+    globalPortalsConfig[activeReqPortalKey] = data.portal;
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>Simpan Persyaratan Portal</span>`;
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Persyaratan Diperbarui!',
+      text: `Daftar syarat berkas untuk ${data.portal.nama} telah diperbarui dan langsung tampil di portal mahasiswa.`,
+      confirmButtonColor: '#164e87'
+    });
+  } catch (e) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Koneksi Gagal',
+      text: 'Gagal menyimpan ke server.',
+      confirmButtonColor: '#0d2346'
+    });
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>Simpan Persyaratan Portal</span>`;
+  }
 }
 
 // ==========================================
@@ -263,20 +503,38 @@ async function handleCreateStudent(event) {
     const data = await res.json();
 
     if (!res.ok) {
-      alert(data.message || 'Gagal menambahkan mahasiswa.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menambahkan',
+        text: data.message || 'Gagal menambahkan mahasiswa.',
+        confirmButtonColor: '#0d2346'
+      });
       btn.disabled = false;
       btn.innerHTML = `<span>Aktivasi Whitelist Mahasiswa</span>`;
       return;
     }
 
-    alert(data.message);
     closeAddStudentModal();
     btn.disabled = false;
     btn.innerHTML = `<span>Aktivasi Whitelist Mahasiswa</span>`;
     loadStudents();
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Berhasil Terdaftar!',
+      text: data.message,
+      confirmButtonColor: '#164e87',
+      timer: 2500,
+      showConfirmButton: false
+    });
   } catch (err) {
     console.error(err);
-    alert('Terjadi kesalahan koneksi.');
+    Swal.fire({
+      icon: 'error',
+      title: 'Koneksi Terputus',
+      text: 'Terjadi kesalahan koneksi ke server.',
+      confirmButtonColor: '#0d2346'
+    });
     btn.disabled = false;
     btn.innerHTML = `<span>Aktivasi Whitelist Mahasiswa</span>`;
   }
@@ -284,9 +542,18 @@ async function handleCreateStudent(event) {
 
 // Delete student from whitelist
 async function handleDeleteStudent(id, name) {
-  if (!confirm(`Apakah Anda yakin ingin menghapus mahasiswa ${name} dari daftar whitelist? Mahasiswa ini tidak akan bisa login lagi.`)) {
-    return;
-  }
+  const result = await Swal.fire({
+    title: 'Hapus dari Whitelist?',
+    text: `Mahasiswa ${name} tidak akan bisa login lagi ke portal setelah dihapus.`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#dc2626',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: '<i class="fa-solid fa-trash"></i> Ya, Hapus',
+    cancelButtonText: 'Batal'
+  });
+
+  if (!result.isConfirmed) return;
 
   try {
     const res = await fetch(`/api/admin/mahasiswa/${id}`, {
@@ -296,11 +563,28 @@ async function handleDeleteStudent(id, name) {
     const data = await res.json();
     if (res.ok) {
       loadStudents();
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil Dihapus',
+        text: `Data mahasiswa ${name} telah dihapus dari whitelist.`,
+        timer: 2000,
+        showConfirmButton: false
+      });
     } else {
-      alert(data.message || 'Gagal menghapus.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menghapus',
+        text: data.message || 'Gagal menghapus mahasiswa.',
+        confirmButtonColor: '#0d2346'
+      });
     }
   } catch (err) {
-    alert('Koneksi gagal.');
+    Swal.fire({
+      icon: 'error',
+      title: 'Koneksi Gagal',
+      text: 'Tidak dapat terhubung ke server.',
+      confirmButtonColor: '#0d2346'
+    });
   }
 }
 
@@ -462,13 +746,23 @@ function setDecision(decision) {
 // Simpan Hasil Verifikasi
 async function saveVerificationAction() {
   if (!selectedDecision) {
-    alert('Silakan pilih salah satu keputusan: "Setujui (ACC)" atau "Minta Perbaikan (Revisi)".');
+    Swal.fire({
+      icon: 'info',
+      title: 'Pilih Keputusan',
+      text: 'Silakan pilih salah satu keputusan: "Setujui (ACC)" atau "Minta Perbaikan (Revisi)".',
+      confirmButtonColor: '#0d2346'
+    });
     return;
   }
 
   const catatanDosen = document.getElementById('vCatatanDosen').value.trim();
   if (selectedDecision === 'REVISION' && !catatanDosen) {
-    alert('Harap masukkan catatan perbaikan untuk mahasiswa agar mereka tahu apa yang perlu diperbaiki.');
+    Swal.fire({
+      icon: 'warning',
+      title: 'Catatan Diperlukan',
+      text: 'Harap masukkan catatan perbaikan untuk mahasiswa agar mereka tahu apa yang perlu diperbaiki.',
+      confirmButtonColor: '#0d2346'
+    });
     document.getElementById('vCatatanDosen').focus();
     return;
   }
@@ -492,7 +786,12 @@ async function saveVerificationAction() {
     const data = await res.json();
 
     if (!res.ok) {
-      alert(data.message || 'Gagal menyimpan verifikasi.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menyimpan',
+        text: data.message || 'Gagal menyimpan verifikasi.',
+        confirmButtonColor: '#0d2346'
+      });
       btn.disabled = false;
       btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>Simpan & Kirim Verifikasi</span>`;
       return;
@@ -511,12 +810,25 @@ async function saveVerificationAction() {
     // Perbarui tabel direktori
     loadStudents(false);
 
+    Swal.fire({
+      icon: 'success',
+      title: 'Verifikasi Terkirim!',
+      text: 'Keputusan verifikasi telah tersimpan dan terkirim ke mahasiswa secara real-time.',
+      timer: 2000,
+      showConfirmButton: false
+    });
+
     setTimeout(() => {
       btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>Simpan & Kirim Verifikasi</span>`;
     }, 2000);
   } catch (err) {
     console.error(err);
-    alert('Koneksi server gagal.');
+    Swal.fire({
+      icon: 'error',
+      title: 'Koneksi Gagal',
+      text: 'Tidak dapat terhubung ke server.',
+      confirmButtonColor: '#0d2346'
+    });
     btn.disabled = false;
     btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>Simpan & Kirim Verifikasi</span>`;
   }
@@ -524,8 +836,21 @@ async function saveVerificationAction() {
 
 // Logout Dosen
 async function handleAdminLogout() {
-  if (!confirm('Apakah Anda ingin keluar dari Portal Dosen?')) return;
+  const result = await Swal.fire({
+    title: 'Keluar dari Portal?',
+    text: 'Sesi monitoring dosen Anda akan diakhiri.',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#0d2346',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: 'Ya, Keluar',
+    cancelButtonText: 'Batal'
+  });
+
+  if (!result.isConfirmed) return;
+
   try {
+    localStorage.removeItem('token');
     await fetch('/api/auth/logout', { method: 'POST' });
     window.location.href = '/index.html';
   } catch (err) {

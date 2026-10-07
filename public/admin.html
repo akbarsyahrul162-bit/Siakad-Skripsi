@@ -6,6 +6,8 @@
   <title>Portal Dosen & Admin - Monitoring Berkas Skripsi</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- SweetAlert2 untuk Pop-up Elegan Modern -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 
@@ -90,10 +92,16 @@
         </select>
       </div>
 
-      <button class="btn-add-student" onclick="openAddStudentModal()">
-        <i class="fa-solid fa-user-plus"></i>
-        <span>Tambah Mahasiswa ke Whitelist</span>
-      </button>
+      <div style="display: flex; gap: 0.6rem;">
+        <button class="btn-add-student" style="background: linear-gradient(135deg, #164e87 0%, #0d2346 100%);" onclick="openRequirementsModal()">
+          <i class="fa-solid fa-list-check"></i>
+          <span>Kelola Syarat Berkas Portal</span>
+        </button>
+        <button class="btn-add-student" onclick="openAddStudentModal()">
+          <i class="fa-solid fa-user-plus"></i>
+          <span>Tambah Mahasiswa ke Whitelist</span>
+        </button>
+      </div>
     </div>
 
     <!-- Table Directory Card -->
@@ -200,6 +208,123 @@
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EDIT: Edit Data Mahasiswa di Whitelist -->
+  <div class="modal-overlay" id="editStudentModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-user-pen"></i> Edit Data Mahasiswa</h3>
+        <button class="btn-close-modal" onclick="closeEditStudentModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formEditStudent" onsubmit="handleUpdateStudent(event)">
+          <input type="hidden" id="editStudentId">
+          <div class="form-group">
+            <label for="editNim">Nomor Induk Mahasiswa (NIM) *</label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-id-card field-icon"></i>
+              <input type="text" id="editNim" required autocomplete="off">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editNama">Nama Lengkap Mahasiswa *</label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-user field-icon"></i>
+              <input type="text" id="editNama" required autocomplete="off">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label for="editAngkatan">Angkatan *</label>
+              <div class="input-with-icon">
+                <i class="fa-solid fa-calendar field-icon"></i>
+                <input type="text" id="editAngkatan" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="editProdi">Program Studi</label>
+              <div class="input-with-icon">
+                <i class="fa-solid fa-graduation-cap field-icon"></i>
+                <input type="text" id="editProdi">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editJudul">Judul Skripsi</label>
+            <textarea 
+              id="editJudul" 
+              class="verification-note-input" 
+              style="min-height: 70px;"
+            ></textarea>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+            <button type="button" class="btn-logout" style="background:#e2e8f0; color:#475569; border:none;" onclick="closeEditStudentModal()">
+              Batal
+            </button>
+            <button type="submit" class="btn-primary" style="width: auto; padding: 0.6rem 1.5rem;" id="btnSubmitEditStudent">
+              <span>Simpan Perubahan</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL SYARAT: Kelola Syarat Berkas Portal -->
+  <div class="modal-overlay" id="requirementsModal">
+    <div class="modal-container modal-container-large">
+      <div class="modal-header">
+        <div>
+          <h3><i class="fa-solid fa-sliders"></i> Kelola Syarat Dokumen Berkas Skripsi</h3>
+          <span style="font-size: 0.75rem; color: #cbd5e1;">Atur nama portal, deskripsi, serta tambah/edit syarat berkas yang harus diunggah mahasiswa</span>
+        </div>
+        <button class="btn-close-modal" onclick="closeRequirementsModal()">&times;</button>
+      </div>
+
+      <!-- Portal Tabs -->
+      <div style="background: #f1f5f9; padding: 0.5rem 1.5rem; display: flex; gap: 0.5rem; border-bottom: 1px solid var(--border-color);">
+        <button type="button" class="tab-btn active" id="reqTabPortal1" onclick="switchReqPortal('PORTAL_1')">Portal 1: Pasca Sempro</button>
+        <button type="button" class="tab-btn" id="reqTabPortal2" onclick="switchReqPortal('PORTAL_2')">Portal 2: Semhas</button>
+        <button type="button" class="tab-btn" id="reqTabPortal3" onclick="switchReqPortal('PORTAL_3')">Portal 3: Skripsi / Tutup</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.5rem; max-height: 70vh; overflow-y: auto;">
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label><strong>Nama Tahapan / Portal:</strong></label>
+          <input type="text" id="reqPortalName" class="input-portal-single" style="font-weight: 700; margin-top: 0.3rem;">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label><strong>Deskripsi / Petunjuk Tahapan:</strong></label>
+          <textarea id="reqPortalDesc" class="verification-note-input" style="min-height: 60px; margin-top: 0.3rem;"></textarea>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+          <h4 style="font-size: 0.95rem; color: var(--primary-navy);"><i class="fa-solid fa-file-circle-check"></i> Daftar Dokumen Persyaratan:</h4>
+          <button type="button" class="btn-primary" style="width: auto; padding: 0.35rem 0.85rem; font-size: 0.8rem;" onclick="addDocRequirementRow()">
+            <i class="fa-solid fa-plus"></i> Tambah Dokumen
+          </button>
+        </div>
+
+        <div id="reqDocsContainer" style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <!-- Dynamically generated rows -->
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.75rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+          <button type="button" class="btn-logout" style="background:#e2e8f0; color:#475569; border:none;" onclick="closeRequirementsModal()">
+            Tutup
+          </button>
+          <button type="button" class="btn-primary" style="width: auto; padding: 0.6rem 1.75rem;" id="btnSaveReqPortal" onclick="savePortalRequirements()">
+            <i class="fa-solid fa-floppy-disk"></i> <span>Simpan Persyaratan Portal</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>

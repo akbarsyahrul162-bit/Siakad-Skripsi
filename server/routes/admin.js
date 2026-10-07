@@ -117,6 +117,63 @@ router.post('/mahasiswa', async (req, res) => {
   }
 });
 
+// Edit / Update data mahasiswa di whitelist
+router.put('/mahasiswa/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { nim, nama, angkatan, prodi, judulSkripsi } = req.body;
+
+    if (!nim || !nama || !angkatan) {
+      return res.status(400).json({
+        success: false,
+        message: 'NIM, Nama, dan Angkatan wajib diisi.',
+      });
+    }
+
+    const cleanNim = String(nim).trim();
+
+    // Cek jika NIM diganti dan sudah dipakai mahasiswa lain
+    const duplicate = await prisma.mahasiswa.findFirst({
+      where: {
+        nim: cleanNim,
+        NOT: { id },
+      },
+    });
+
+    if (duplicate) {
+      return res.status(400).json({
+        success: false,
+        message: `NIM ${cleanNim} sudah digunakan oleh mahasiswa lain.`,
+      });
+    }
+
+    const updatedMhs = await prisma.mahasiswa.update({
+      where: { id },
+      data: {
+        nim: cleanNim,
+        nama: String(nama).trim(),
+        angkatan: String(angkatan).trim(),
+        prodi: prodi ? String(prodi).trim() : 'Teknik Informatika',
+        judulSkripsi: judulSkripsi ? String(judulSkripsi).trim() : null,
+      },
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('whitelist_updated', { action: 'UPDATED', mahasiswa: updatedMhs });
+    }
+
+    return res.json({
+      success: true,
+      message: `Data mahasiswa ${updatedMhs.nama} berhasil diperbarui!`,
+      mahasiswa: updatedMhs,
+    });
+  } catch (error) {
+    console.error('Error update mahasiswa:', error);
+    return res.status(500).json({ success: false, message: 'Gagal memperbarui data mahasiswa.' });
+  }
+});
+
 // Hapus mahasiswa dari whitelist
 router.delete('/mahasiswa/:id', async (req, res) => {
   try {
@@ -256,6 +313,52 @@ router.post('/verify', async (req, res) => {
   } catch (error) {
     console.error('Error verify submission:', error);
     return res.status(500).json({ success: false, message: 'Gagal menyimpan hasil verifikasi.' });
+  }
+});
+
+// Ambil data konfigurasi persyaratan berkas portal
+router.get('/portals-config', (req, res) => {
+  return res.json({
+    success: true,
+    portals: PORTAL_CONFIG,
+  });
+});
+
+// Update persyaratan berkas untuk portal tertentu
+router.put('/portals-config/:portalKey', (req, res) => {
+  try {
+    const { portalKey } = req.params;
+    const { nama, deskripsi, berkas } = req.body;
+
+    if (!PORTAL_CONFIG[portalKey]) {
+      return res.status(404).json({ success: false, message: 'Portal tidak ditemukan.' });
+    }
+
+    if (nama) PORTAL_CONFIG[portalKey].nama = String(nama).trim();
+    if (deskripsi) PORTAL_CONFIG[portalKey].deskripsi = String(deskripsi).trim();
+    if (Array.isArray(berkas)) {
+      PORTAL_CONFIG[portalKey].berkas = berkas.map((b, idx) => ({
+        nomor: idx + 1,
+        nama: String(b.nama || '').trim(),
+        keterangan: String(b.keterangan || '').trim(),
+        formatContoh: String(b.formatContoh || `0${idx + 1}_Dokumen_[NIM].pdf`).trim(),
+      }));
+    }
+
+    // Broadcast ke mahasiswa & admin jika ada socket
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('portals_config_updated', { portalKey, portal: PORTAL_CONFIG[portalKey] });
+    }
+
+    return res.json({
+      success: true,
+      message: `Persyaratan berkas ${PORTAL_CONFIG[portalKey].nama} berhasil diperbarui!`,
+      portal: PORTAL_CONFIG[portalKey],
+    });
+  } catch (error) {
+    console.error('Error update portal config:', error);
+    return res.status(500).json({ success: false, message: 'Gagal memperbarui persyaratan portal.' });
   }
 });
 
