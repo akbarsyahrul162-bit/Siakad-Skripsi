@@ -1,33 +1,38 @@
 {
   "version": 2,
-  "rewrites": [
+  "builds": [
     {
-      "source": "/api/(.*)",
-      "destination": "/server/index.js"
+      "src": "server/index.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["public/**", "prisma/**"]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/css/(.*)",
+      "dest": "/public/css/$1"
     },
     {
-      "source": "/css/(.*)",
-      "destination": "/public/css/$1"
+      "src": "/js/(.*)",
+      "dest": "/public/js/$1"
     },
     {
-      "source": "/js/(.*)",
-      "destination": "/public/js/$1"
+      "src": "/admin.html",
+      "dest": "/public/admin.html"
     },
     {
-      "source": "/admin.html",
-      "destination": "/public/admin.html"
+      "src": "/mahasiswa.html",
+      "dest": "/public/mahasiswa.html"
     },
     {
-      "source": "/mahasiswa.html",
-      "destination": "/public/mahasiswa.html"
+      "src": "/api/(.*)",
+      "dest": "/server/index.js"
     },
     {
-      "source": "/",
-      "destination": "/public/index.html"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/public/$1"
+      "src": "/(.*)",
+      "dest": "/public/index.html"
     }
   ]
 }
