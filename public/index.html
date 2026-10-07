@@ -6,6 +6,66 @@
   <title>Portal Akademik & Skripsi - Gate Login</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    .input-portal-single {
+      width: 100%;
+      padding: 0.85rem 1rem 0.85rem 2.8rem;
+      border: 2px solid var(--border-color);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.2s ease;
+      background: #f8fafc;
+      font-weight: 500;
+    }
+    .input-portal-single:focus {
+      background: #ffffff;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+    }
+    .btn-portal-submit {
+      width: 100%;
+      padding: 0.95rem;
+      background: linear-gradient(135deg, #164e87 0%, #0d2346 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(13, 35, 70, 0.25);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      margin-top: 1.25rem;
+    }
+    .btn-portal-submit:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(13, 35, 70, 0.35);
+    }
+    .btn-portal-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .demo-chip-btn {
+      font-size: 0.75rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: white;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .demo-chip-btn:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+  </style>
 </head>
 <body>
 
@@ -36,16 +96,16 @@
           </span>
           <h1>Sistem Pengumpulan & Verifikasi Berkas Skripsi</h1>
           <p>
-            Selamat datang di Portal Verifikasi Berkas Skripsi & Tugas Akhir. Sistem ini menggunakan otorisasi terpusat (Whitelist) untuk menjamin keamanan dan kenyamanan proses bimbingan Anda.
+            Portal akademik terpadu untuk pengumpulan dan verifikasi berkas Seminar Proposal, Seminar Hasil, dan Ujian Meja / Skripsi.
           </p>
 
           <div class="academic-announcements">
             <div class="announcement-title">
-              <i class="fa-solid fa-bullhorn"></i> Pengumuman Akademik
+              <i class="fa-solid fa-circle-info"></i> Petunjuk Autentikasi
             </div>
             <div class="announcement-text">
-              • Mahasiswa hanya dapat masuk jika NIM telah diaktivasi oleh Dosen Pembimbing.<br>
-              • Pastikan berkas Google Drive disetel dengan akses <strong>"Siapa saja yang memiliki link dapat melihat (Viewer)"</strong> agar dapat diverifikasi oleh dosen.
+              • <strong>Dosen / Admin:</strong> Masukkan kata sandi <code>admin12345</code> (atau username <code>admin</code>) untuk masuk ke Dashboard Monitoring.<br><br>
+              • <strong>Mahasiswa:</strong> Masukkan NIM Anda yang sudah didaftarkan oleh dosen di dashboard admin.
             </div>
           </div>
         </div>
@@ -55,118 +115,85 @@
         </div>
       </div>
 
-      <!-- Right Side: Login Form with Tabs -->
+      <!-- Right Side: 1 Single Portal Login Form -->
       <div class="login-form-side">
         <div class="form-header">
           <h2>Masuk ke Portal</h2>
-          <p>Pilih peran Anda untuk mengakses lembar kerja</p>
-        </div>
-
-        <!-- Role Switcher Tab -->
-        <div class="role-tabs">
-          <button type="button" class="tab-btn active" id="tabMahasiswa" onclick="switchTab('MAHASISWA')">
-            <i class="fa-solid fa-user-graduate"></i> Mahasiswa (NIM)
-          </button>
-          <button type="button" class="tab-btn" id="tabDosen" onclick="switchTab('DOSEN')">
-            <i class="fa-solid fa-chalkboard-user"></i> Dosen / Admin
-          </button>
+          <p>Gunakan NIM Anda atau Kredensial Dosen / Admin</p>
         </div>
 
         <!-- Alert Notification Box -->
         <div id="loginAlert" class="alert-box"></div>
 
-        <!-- Form Mahasiswa (Whitelist NIM) -->
-        <form id="formLoginMahasiswa" onsubmit="handleLoginMahasiswa(event)">
+        <!-- Form 1 Pintu Masuk Tunggal -->
+        <form id="formUnifiedLogin" onsubmit="handleUnifiedLogin(event)">
           <div class="form-group">
-            <label for="inputNim">Nomor Induk Mahasiswa (NIM)</label>
+            <label for="inputUsername" style="font-size: 0.85rem; font-weight: 700; color: var(--primary-navy); margin-bottom: 0.4rem; display: block;">
+              Username / NIM Mahasiswa:
+            </label>
             <div class="input-with-icon">
-              <i class="fa-solid fa-id-card field-icon"></i>
-              <input 
-                type="text" 
-                id="inputNim" 
-                placeholder="Contoh: 452021001" 
-                required 
-                autocomplete="off"
-              >
-            </div>
-            <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.35rem; display: block;">
-              *Masukkan NIM yang sudah didaftarkan dosen pembimbing
-            </small>
-          </div>
-
-          <button type="submit" class="btn-primary" id="btnSubmitMhs">
-            <span>Masuk ke Dashboard Mahasiswa</span>
-            <i class="fa-solid fa-arrow-right"></i>
-          </button>
-
-          <!-- Demo Quick Fill for Testing -->
-          <div style="margin-top: 1.25rem; padding: 0.75rem; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px;">
-            <div style="font-size: 0.72rem; font-weight: 700; color: #475569; margin-bottom: 0.4rem; text-transform: uppercase;">
-              Akun Demo Whitelist:
-            </div>
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              <button type="button" onclick="quickFillNim('452021001')" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; background: white; border: 1px solid #94a3b8; border-radius: 4px; cursor: pointer;">
-                452021001 (Ahmad Fauzi)
-              </button>
-              <button type="button" onclick="quickFillNim('452021045')" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; background: white; border: 1px solid #94a3b8; border-radius: 4px; cursor: pointer;">
-                452021045 (Siti Nurhaliza)
-              </button>
-              <button type="button" onclick="quickFillNim('999999999')" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; background: #fee2e2; border: 1px solid #f87171; color: #b91c1c; border-radius: 4px; cursor: pointer;" title="Uji coba NIM belum terdaftar">
-                999999999 (Tes Blokir)
-              </button>
-            </div>
-          </div>
-        </form>
-
-        <!-- Form Dosen (Username & Password) -->
-        <form id="formLoginDosen" onsubmit="handleLoginDosen(event)" style="display: none;">
-          <div class="form-group">
-            <label for="inputUsername">Username Dosen / Admin</label>
-            <div class="input-with-icon">
-              <i class="fa-solid fa-user-shield field-icon"></i>
+              <i class="fa-solid fa-user field-icon" style="font-size: 1rem; color: #64748b;"></i>
               <input 
                 type="text" 
                 id="inputUsername" 
-                placeholder="Username (contoh: dosen)" 
+                class="input-portal-single"
+                placeholder="Contoh: 452021001 atau admin" 
                 required 
                 autocomplete="username"
+                autofocus
               >
             </div>
           </div>
 
-          <div class="form-group">
-            <label for="inputPassword">Kata Sandi (Password)</label>
+          <div class="form-group" style="margin-top: 1rem;">
+            <label for="inputPassword" style="font-size: 0.85rem; font-weight: 700; color: var(--primary-navy); margin-bottom: 0.4rem; display: block;">
+              Kata Sandi (Password):
+            </label>
             <div class="input-with-icon">
-              <i class="fa-solid fa-lock field-icon"></i>
+              <i class="fa-solid fa-lock field-icon" style="font-size: 1rem; color: #64748b;"></i>
               <input 
                 type="password" 
                 id="inputPassword" 
-                placeholder="Masukkan kata sandi" 
-                required 
+                class="input-portal-single"
+                placeholder="Dosen: admin12345 (Mahasiswa kosongkan/bebas)" 
                 autocomplete="current-password"
               >
             </div>
+            <small style="color: var(--text-muted); font-size: 0.72rem; margin-top: 0.35rem; display: block;">
+              *Penentu Dosen: sandi <code>admin12345</code> • Mahasiswa: NIM yang terdaftar di whitelist
+            </small>
           </div>
 
-          <button type="submit" class="btn-primary" id="btnSubmitDosen">
-            <span>Masuk ke Portal Dosen</span>
+          <button type="submit" class="btn-portal-submit" id="btnSubmitUnified">
+            <span>Masuk ke Portal</span>
             <i class="fa-solid fa-arrow-right"></i>
           </button>
+        </form>
 
-          <!-- Demo Quick Fill for Dosen -->
-          <div style="margin-top: 1.25rem; padding: 0.75rem; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px;">
-            <div style="font-size: 0.72rem; font-weight: 700; color: #475569; margin-bottom: 0.4rem; text-transform: uppercase;">
-              Akun Demo Dosen:
-            </div>
-            <button type="button" onclick="quickFillDosen('dosen', 'password123')" style="font-size: 0.72rem; padding: 0.25rem 0.6rem; background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; border-radius: 4px; cursor: pointer; font-weight: 600;">
-              Isi Otomatis: dosen / password123
+        <!-- Demo Quick Click Buttons -->
+        <div style="margin-top: 1.5rem; padding: 0.85rem; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px;">
+          <div style="font-size: 0.72rem; font-weight: 700; color: #475569; margin-bottom: 0.5rem; text-transform: uppercase;">
+            Pilihan Uji Coba Cepat (1-Klik):
+          </div>
+          <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+            <button type="button" class="demo-chip-btn" onclick="isiForm('admin', 'admin12345')" style="color: #047857; border-color: #a7f3d0; background: #ecfdf5; font-weight: 700;">
+              👨‍🏫 Masuk Dosen (admin12345)
+            </button>
+            <button type="button" class="demo-chip-btn" onclick="isiForm('452021001', '')" style="color: #1d4ed8; border-color: #93c5fd; background: #eff6ff;">
+              🎓 Mahasiswa (452021001)
+            </button>
+            <button type="button" class="demo-chip-btn" onclick="isiForm('452021045', '')" style="color: #1d4ed8; border-color: #93c5fd; background: #eff6ff;">
+              🎓 Mahasiswa (452021045)
+            </button>
+            <button type="button" class="demo-chip-btn" onclick="isiForm('999999999', '')" style="color: #b91c1c; border-color: #fca5a5; background: #fef2f2;">
+              ⚠️ Tes NIM Tidak Terdaftar
             </button>
           </div>
-        </form>
+        </div>
 
         <!-- Helpdesk Footer -->
         <div class="helpdesk-info">
-          Butuh bantuan aktivasi data? Hubungi <strong>Helpdesk Akademik</strong> Gedung Rektorat Lt. 1 atau kontak admin prodi.
+          Butuh aktivasi NIM? Hubungi <strong>Helpdesk Akademik</strong> Gedung Rektorat Lt. 1.
         </div>
       </div>
 
@@ -177,6 +204,81 @@
     Sistem Informasi Manajemen Skripsi & Verifikasi Berkas Terpadu • Universitas Bosowa Style
   </footer>
 
-  <script src="/js/auth.js"></script>
+  <!-- Script Proses Masuk Inline -->
+  <script>
+    function showAlert(message, type = 'danger') {
+      const alertBox = document.getElementById('loginAlert');
+      if (!alertBox) return;
+      alertBox.className = `alert-box alert-${type}`;
+      alertBox.innerHTML = `
+        <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+          <i class="fa-solid fa-${type === 'danger' ? 'triangle-exclamation' : 'circle-check'}" style="margin-top: 2px;"></i>
+          <div>${message}</div>
+        </div>
+      `;
+      alertBox.style.display = 'block';
+    }
+
+    function isiForm(user, pass) {
+      document.getElementById('inputUsername').value = user;
+      document.getElementById('inputPassword').value = pass;
+      handleUnifiedLogin();
+    }
+
+    async function handleUnifiedLogin(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      
+      const userEl = document.getElementById('inputUsername');
+      const passEl = document.getElementById('inputPassword');
+      const username = userEl ? userEl.value.trim() : '';
+      const password = passEl ? passEl.value.trim() : '';
+      const btn = document.getElementById('btnSubmitUnified');
+      const alertBox = document.getElementById('loginAlert');
+
+      if (alertBox) alertBox.style.display = 'none';
+
+      if (!username && !password) {
+        showAlert('Silakan masukkan Username / NIM atau Kata Sandi.', 'warning');
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memverifikasi Akses...`;
+      }
+
+      try {
+        const res = await fetch('/api/auth/login-unified', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showAlert(data.message || 'Akses ditolak.', 'danger');
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<span>Masuk ke Portal</span> <i class="fa-solid fa-arrow-right"></i>`;
+          }
+          return;
+        }
+
+        showAlert(data.message || 'Berhasil masuk! Mengalihkan...', 'success');
+        setTimeout(() => {
+          window.location.href = data.redirect || (data.role === 'DOSEN' ? '/admin.html' : '/mahasiswa.html');
+        }, 500);
+
+      } catch (err) {
+        console.error(err);
+        showAlert('Koneksi ke server gagal. Pastikan jaringan aktif.', 'danger');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<span>Masuk ke Portal</span> <i class="fa-solid fa-arrow-right"></i>`;
+        }
+      }
+    }
+  </script>
 </body>
 </html>

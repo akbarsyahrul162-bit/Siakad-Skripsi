@@ -7,6 +7,104 @@ const { JWT_SECRET, requireAuth } = require('../middleware/auth');
 
 const prisma = new PrismaClient();
 
+// 1 PINTU MASUK TERPADU (Username & Password: Dosen via sandi 'admin12345' / 'admin', Mahasiswa via NIM Whitelist)
+router.post('/login-unified', async (req, res) => {
+  try {
+    const rawUser = req.body.username || req.body.nim || req.body.input || '';
+    const rawPass = req.body.password || req.body.sandi || '';
+    
+    const cleanUser = String(rawUser).trim();
+    const cleanPass = String(rawPass).trim();
+
+    if (!cleanUser && !cleanPass) {
+      return res.status(400).json({
+        success: false,
+        message: 'Silakan masukkan Username / NIM dan Kata Sandi.',
+      });
+    }
+
+    // 1. PENENTU DOSEN / ADMIN:
+    // Terdeteksi jika sandi = 'admin12345', atau jika username/password mengandung 'admin12345' / 'admin'
+    const isDosenPassword = cleanPass === 'admin12345' || cleanPass.toLowerCase() === 'admin12345';
+    const isDosenUser = cleanUser.toLowerCase() === 'admin' || cleanUser.toLowerCase() === 'dosen' || cleanUser === 'admin12345';
+
+    if (isDosenPassword || isDosenUser) {
+      const admin = await prisma.admin.findFirst();
+      const token = jwt.sign(
+        {
+          id: admin ? admin.id : 1,
+          username: admin ? admin.username : 'admin',
+          nama: admin ? admin.nama : 'Dr. Ir. Fitrah, M.T.',
+          role: 'DOSEN',
+        },
+        JWT_SECRET,
+        { expiresIn: '1d' }
+      );
+
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+
+      return res.json({
+        success: true,
+        role: 'DOSEN',
+        message: 'Akses Dosen / Admin Berhasil! Mengalihkan ke dashboard monitoring...',
+        redirect: '/admin.html',
+      });
+    }
+
+    // 2. PENENTU MAHASISWA:
+    // Dilihat dari NIM yang dimasukkan (bisa di kolom username atau password)
+    const nimCandidate = cleanUser || cleanPass;
+
+    const mahasiswa = await prisma.mahasiswa.findUnique({
+      where: { nim: nimCandidate },
+    });
+
+    if (!mahasiswa) {
+      return res.status(403).json({
+        success: false,
+        isNotWhitelisted: true,
+        message: 'NIM Anda belum didaftarkan oleh dosen/admin di dashboard admin. Silakan hubungi admin untuk aktivasi data.',
+      });
+    }
+
+    // Buat Token Sesi Mahasiswa
+    const token = jwt.sign(
+      {
+        id: mahasiswa.id,
+        nim: mahasiswa.nim,
+        nama: mahasiswa.nama,
+        angkatan: mahasiswa.angkatan,
+        prodi: mahasiswa.prodi,
+        role: 'MAHASISWA',
+      },
+      JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    return res.json({
+      success: true,
+      role: 'MAHASISWA',
+      message: `Selamat datang, ${mahasiswa.nama}! Mengalihkan ke dashboard...`,
+      redirect: '/mahasiswa.html',
+    });
+  } catch (error) {
+    console.error('Error login unified:', error);
+    return res.status(500).json({ success: false, message: 'Terjadi kesalahan sistem server.' });
+  }
+});
+
 // Login Mahasiswa (Whitelist NIM)
 router.post('/login-mahasiswa', async (req, res) => {
   try {

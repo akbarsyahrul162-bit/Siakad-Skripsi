@@ -1,7 +1,25 @@
-// Deteksi jika dibuka langsung via file:/// bukan http://localhost:3000
+// Deteksi protokol dan inisialisasi tab
 document.addEventListener('DOMContentLoaded', () => {
   if (window.location.protocol === 'file:') {
-    showAlert('<strong>Perhatian:</strong> Halaman ini dibuka langsung dari File Explorer (file:///), sehingga koneksi ke backend database diblokir oleh browser. Silakan buka lewat link server lokal: <a href="http://localhost:3000" style="color:#1d4ed8; font-weight:bold; text-decoration:underline;">http://localhost:3000</a>', 'warning');
+    showAlert('<strong>Perhatian:</strong> Halaman ini dibuka via file:///. Silakan buka via server lokal atau link online Cloudflare.', 'warning');
+  }
+
+  // Pasang event listener langsung ke tombol tab agar pasti berfungsi di semua browser & HP
+  const tabMhs = document.getElementById('tabMahasiswa');
+  const tabDosen = document.getElementById('tabDosen');
+
+  if (tabMhs) {
+    tabMhs.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchTab('MAHASISWA');
+    });
+  }
+
+  if (tabDosen) {
+    tabDosen.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchTab('DOSEN');
+    });
   }
 });
 
@@ -13,24 +31,25 @@ function switchTab(role) {
   const formDosen = document.getElementById('formLoginDosen');
   const alertBox = document.getElementById('loginAlert');
 
-  alertBox.style.display = 'none';
+  if (alertBox) alertBox.style.display = 'none';
 
   if (role === 'MAHASISWA') {
-    tabMhs.classList.add('active');
-    tabDosen.classList.remove('active');
-    formMhs.style.display = 'block';
-    formDosen.style.display = 'none';
+    if (tabMhs) tabMhs.classList.add('active');
+    if (tabDosen) tabDosen.classList.remove('active');
+    if (formMhs) formMhs.style.display = 'block';
+    if (formDosen) formDosen.style.display = 'none';
   } else {
-    tabDosen.classList.add('active');
-    tabMhs.classList.remove('active');
-    formDosen.style.display = 'block';
-    formMhs.style.display = 'none';
+    if (tabDosen) tabDosen.classList.add('active');
+    if (tabMhs) tabMhs.classList.remove('active');
+    if (formDosen) formDosen.style.display = 'block';
+    if (formMhs) formMhs.style.display = 'none';
   }
 }
 
 // Show alert
 function showAlert(message, type = 'danger') {
   const alertBox = document.getElementById('loginAlert');
+  if (!alertBox) return;
   alertBox.className = `alert-box alert-${type}`;
   alertBox.innerHTML = `
     <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
@@ -41,22 +60,39 @@ function showAlert(message, type = 'danger') {
   alertBox.style.display = 'block';
 }
 
-// Quick fills for demo
+// Quick fill NIM
 function quickFillNim(nim) {
   switchTab('MAHASISWA');
-  document.getElementById('inputNim').value = nim;
+  const input = document.getElementById('inputNim');
+  if (input) input.value = nim;
+}
+
+// Quick fill & langsung login Dosen otomatis dengan 1 klik!
+async function autoLoginDosen() {
+  switchTab('DOSEN');
+  const u = document.getElementById('inputUsername');
+  const p = document.getElementById('inputPassword');
+  if (u) u.value = 'dosen';
+  if (p) p.value = 'password123';
+
+  // Langsung trigger login
+  const fakeEvent = { preventDefault: () => {} };
+  await handleLoginDosen(fakeEvent);
 }
 
 function quickFillDosen(username, password) {
   switchTab('DOSEN');
-  document.getElementById('inputUsername').value = username;
-  document.getElementById('inputPassword').value = password;
+  const u = document.getElementById('inputUsername');
+  const p = document.getElementById('inputPassword');
+  if (u) u.value = username;
+  if (p) p.value = password;
 }
 
 // Login Mahasiswa (Whitelist check)
 async function handleLoginMahasiswa(event) {
-  event.preventDefault();
-  const nim = document.getElementById('inputNim').value.trim();
+  if (event && event.preventDefault) event.preventDefault();
+  const input = document.getElementById('inputNim');
+  const nim = input ? input.value.trim() : '';
   const btn = document.getElementById('btnSubmitMhs');
 
   if (!nim) {
@@ -64,8 +100,10 @@ async function handleLoginMahasiswa(event) {
     return;
   }
 
-  btn.disabled = true;
-  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memeriksa Whitelist NIM...`;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memeriksa Whitelist NIM...`;
+  }
 
   try {
     const res = await fetch('/api/auth/login-mahasiswa', {
@@ -78,33 +116,38 @@ async function handleLoginMahasiswa(event) {
 
     if (!res.ok) {
       if (data.isNotWhitelisted) {
-        // Pesan peringatan khusus sesuai konsep user
         showAlert(`<strong>Akses Ditolak:</strong> ${data.message}`, 'danger');
       } else {
         showAlert(data.message || 'Gagal masuk.', 'danger');
       }
-      btn.disabled = false;
-      btn.innerHTML = `<span>Masuk ke Dashboard Mahasiswa</span> <i class="fa-solid fa-arrow-right"></i>`;
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<span>Masuk ke Dashboard Mahasiswa</span> <i class="fa-solid fa-arrow-right"></i>`;
+      }
       return;
     }
 
     showAlert(`Login berhasil! Mengalihkan ke dashboard...`, 'success');
     setTimeout(() => {
       window.location.href = data.redirect || '/mahasiswa.html';
-    }, 600);
+    }, 400);
   } catch (err) {
     console.error(err);
     showAlert('Koneksi ke server gagal. Pastikan server aktif.', 'danger');
-    btn.disabled = false;
-    btn.innerHTML = `<span>Masuk ke Dashboard Mahasiswa</span> <i class="fa-solid fa-arrow-right"></i>`;
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<span>Masuk ke Dashboard Mahasiswa</span> <i class="fa-solid fa-arrow-right"></i>`;
+    }
   }
 }
 
 // Login Dosen / Admin
 async function handleLoginDosen(event) {
-  event.preventDefault();
-  const username = document.getElementById('inputUsername').value.trim();
-  const password = document.getElementById('inputPassword').value;
+  if (event && event.preventDefault) event.preventDefault();
+  const u = document.getElementById('inputUsername');
+  const p = document.getElementById('inputPassword');
+  const username = u ? u.value.trim() : '';
+  const password = p ? p.value : '';
   const btn = document.getElementById('btnSubmitDosen');
 
   if (!username || !password) {
@@ -112,8 +155,10 @@ async function handleLoginDosen(event) {
     return;
   }
 
-  btn.disabled = true;
-  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memverifikasi...`;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memverifikasi Kredensial Dosen...`;
+  }
 
   try {
     const res = await fetch('/api/auth/login-dosen', {
@@ -126,19 +171,23 @@ async function handleLoginDosen(event) {
 
     if (!res.ok) {
       showAlert(data.message || 'Login gagal.', 'danger');
-      btn.disabled = false;
-      btn.innerHTML = `<span>Masuk ke Portal Dosen</span> <i class="fa-solid fa-arrow-right"></i>`;
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<span>Masuk ke Portal Dosen</span> <i class="fa-solid fa-arrow-right"></i>`;
+      }
       return;
     }
 
-    showAlert(`Login berhasil! Mengalihkan ke direktori monitoring...`, 'success');
+    showAlert(`Login berhasil! Mengalihkan ke portal dosen...`, 'success');
     setTimeout(() => {
       window.location.href = data.redirect || '/admin.html';
-    }, 600);
+    }, 400);
   } catch (err) {
     console.error(err);
     showAlert('Koneksi server gagal.', 'danger');
-    btn.disabled = false;
-    btn.innerHTML = `<span>Masuk ke Portal Dosen</span> <i class="fa-solid fa-arrow-right"></i>`;
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<span>Masuk ke Portal Dosen</span> <i class="fa-solid fa-arrow-right"></i>`;
+    }
   }
 }
