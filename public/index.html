@@ -270,12 +270,13 @@
           localStorage.setItem('token', data.token);
         }
 
-        // Jika login berhasil, langsung alihkan ke halaman tujuan seketika tanpa menampilkan banner hijau
-        window.location.href = data.redirect || (data.role === 'DOSEN' ? '/admin.html' : '/mahasiswa.html');
+        // Langsung arahkan halaman ke dashboard
+        const targetUrl = data.redirect || (data.role === 'DOSEN' ? '/admin.html' : '/mahasiswa.html');
+        window.location.assign(targetUrl);
 
       } catch (err) {
         console.error(err);
-        showAlert('Koneksi ke server gagal. Pastikan jaringan aktif.', 'danger');
+        showAlert('Terjadi kesalahan koneksi server.', 'danger');
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = `<span>Masuk ke Portal</span> <i class="fa-solid fa-arrow-right"></i>`;
