@@ -58,8 +58,9 @@ router.post('/login-unified', async (req, res) => {
     }
 
     // 2. PENENTU MAHASISWA:
-    // Dilihat dari NIM yang dimasukkan (bisa di kolom username atau password)
-    const nimCandidate = cleanUser || cleanPass;
+    // Dilihat dari kolom NIM atau Username yang dimasukkan
+    const rawNim = req.body.nim ? String(req.body.nim).trim() : '';
+    const nimCandidate = rawNim || cleanUser || cleanPass;
 
     const mahasiswa = await prisma.mahasiswa.findUnique({
       where: { nim: nimCandidate },
@@ -69,7 +70,7 @@ router.post('/login-unified', async (req, res) => {
       return res.status(403).json({
         success: false,
         isNotWhitelisted: true,
-        message: 'NIM Anda belum didaftarkan oleh dosen/admin di dashboard admin. Silakan hubungi admin untuk aktivasi data.',
+        message: 'NIM belum ditambahkan oleh admin',
       });
     }
 
