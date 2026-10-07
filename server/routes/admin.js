@@ -22,10 +22,17 @@ router.get('/mahasiswa', async (req, res) => {
       },
     });
 
+    const portalKeys = Object.keys(PORTAL_CONFIG);
+
     const data = mahasiswaList.map((mhs) => {
       const subMap = {};
       mhs.submissions.forEach((s) => {
         subMap[s.portal] = s;
+      });
+
+      const portals = {};
+      portalKeys.forEach((k) => {
+        portals[k] = subMap[k] || { status: 'EMPTY', driveUrl: null };
       });
 
       return {
@@ -36,11 +43,7 @@ router.get('/mahasiswa', async (req, res) => {
         prodi: mhs.prodi,
         judulSkripsi: mhs.judulSkripsi,
         createdAt: mhs.createdAt,
-        portals: {
-          PORTAL_1: subMap.PORTAL_1 || { status: 'EMPTY', driveUrl: null },
-          PORTAL_2: subMap.PORTAL_2 || { status: 'EMPTY', driveUrl: null },
-          PORTAL_3: subMap.PORTAL_3 || { status: 'EMPTY', driveUrl: null },
-        },
+        portals,
       };
     });
 
@@ -56,6 +59,7 @@ router.get('/mahasiswa', async (req, res) => {
       success: true,
       totalMahasiswa: mahasiswaList.length,
       pendingCount,
+      portalsConfig: PORTAL_CONFIG,
       mahasiswa: data,
     });
   } catch (error) {
@@ -348,17 +352,110 @@ router.put('/portals-config/:portalKey', (req, res) => {
     // Broadcast ke mahasiswa & admin jika ada socket
     const io = req.app.get('io');
     if (io) {
-      io.emit('portals_config_updated', { portalKey, portal: PORTAL_CONFIG[portalKey] });
+      io.emit('portals_config_updated', { portals: PORTAL_CONFIG, portalKey, portal: PORTAL_CONFIG[portalKey] });
     }
 
     return res.json({
       success: true,
       message: `Persyaratan berkas ${PORTAL_CONFIG[portalKey].nama} berhasil diperbarui!`,
       portal: PORTAL_CONFIG[portalKey],
+      portals: PORTAL_CONFIG,
     });
   } catch (error) {
     console.error('Error update portal config:', error);
     return res.status(500).json({ success: false, message: 'Gagal memperbarui persyaratan portal.' });
+  }
+});
+
+// Tambah Portal Baru
+router.post('/portals-config', (req, res) => {
+  try {
+    const { nama, deskripsi, berkas } = req.body;
+
+    if (!nama || !String(nama).trim()) {
+      return res.status(400).json({ success: false, message: 'Nama portal wajib diisi.' });
+    }
+
+    // Generate portal key baru yang unik
+    const existingKeys = Object.keys(PORTAL_CONFIG);
+    let nextIndex = existingKeys.length + 1;
+    let newKey = `PORTAL_${nextIndex}`;
+    while (PORTAL_CONFIG[newKey]) {
+      nextIndex++;
+      newKey = `PORTAL_${nextIndex}`;
+    }
+
+    const cleanNama = String(nama).trim();
+    const cleanDeskripsi = deskripsi ? String(deskripsi).trim() : 'Persyaratan berkas tahapan skripsi.';
+
+    const initialDocs = Array.isArray(berkas) && berkas.length > 0
+      ? berkas.map((b, idx) => ({
+          nomor: idx + 1,
+          nama: String(b.nama || '').trim(),
+          keterangan: String(b.keterangan || '').trim(),
+          formatContoh: String(b.formatContoh || `0${idx + 1}_Dokumen_[NIM].pdf`).trim(),
+        }))
+      : [
+          {
+            nomor: 1,
+            nama: 'Dokumen Persyaratan Utama',
+            keterangan: 'Lembar / surat pengesahan yang telah disetujui',
+            formatContoh: `01_Dokumen_Persyaratan_[NIM].pdf`,
+          },
+        ];
+
+    PORTAL_CONFIG[newKey] = {
+      id: newKey,
+      nama: cleanNama,
+      deskripsi: cleanDeskripsi,
+      berkas: initialDocs,
+    };
+
+    // Broadcast update portal ke semua client
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('portals_config_updated', { portals: PORTAL_CONFIG, newKey });
+    }
+
+    return res.json({
+      success: true,
+      message: `Portal baru "${cleanNama}" berhasil ditambahkan!`,
+      portalKey: newKey,
+      portal: PORTAL_CONFIG[newKey],
+      portals: PORTAL_CONFIG,
+    });
+  } catch (error) {
+    console.error('Error create portal config:', error);
+    return res.status(500).json({ success: false, message: 'Gagal menambahkan portal baru.' });
+  }
+});
+
+// Hapus Portal
+router.delete('/portals-config/:portalKey', (req, res) => {
+  try {
+    const { portalKey } = req.params;
+
+    if (!PORTAL_CONFIG[portalKey]) {
+      return res.status(404).json({ success: false, message: 'Portal tidak ditemukan.' });
+    }
+
+    const deletedNama = PORTAL_CONFIG[portalKey].nama;
+    delete PORTAL_CONFIG[portalKey];
+
+    // Broadcast ke semua client
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('portals_config_updated', { portals: PORTAL_CONFIG, deletedKey: portalKey });
+    }
+
+    return res.json({
+      success: true,
+      message: `Portal "${deletedNama}" berhasil dihapus.`,
+      portals: PORTAL_CONFIG,
+    });
+  } catch (error) {
+    console.error('Error delete portal config:', error);
+    return res.status(500).json({ success: false, message: 'Gagal menghapus portal.' });
   }
 });
 

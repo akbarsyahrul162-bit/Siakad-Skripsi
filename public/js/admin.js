@@ -1,9 +1,11 @@
 let socket = null;
 let allStudents = [];
 let filteredStudents = [];
+let globalPortalsConfig = {};
 let currentViewingStudent = null;
 let currentViewingPortals = [];
 let activePortalKey = 'PORTAL_1';
+let activeReqPortalKey = 'PORTAL_1';
 let selectedDecision = null;
 
 const STATUS_META = {
@@ -43,18 +45,29 @@ function initSocket() {
 
     // Real-Time Listener: Saat mahasiswa mengunggah link
     socket.on('submission_updated', (data) => {
-      // Perbarui tabel secara halus tanpa reload penuh
       loadStudents(false);
 
-      // Jika dosen sedang membuka modal berkas mahasiswa tersebut, perbarui tampilan modal
       if (currentViewingStudent && currentViewingStudent.id === data.mahasiswaId) {
         openVerificationModal(data.mahasiswaId, false);
       }
     });
 
-    // Real-Time Listener: Saat mahasiswa baru ditambahkan / dihapus
+    // Real-Time Listener: Saat mahasiswa baru ditambahkan / diedit / dihapus
     socket.on('whitelist_updated', () => {
       loadStudents(false);
+    });
+
+    // Real-Time Listener: Saat struktur portal / syarat diubah oleh admin
+    socket.on('portals_config_updated', (data) => {
+      if (data && data.portals) {
+        globalPortalsConfig = data.portals;
+      }
+      loadStudents(false);
+      const reqModal = document.getElementById('requirementsModal');
+      if (reqModal && reqModal.style.display === 'flex') {
+        renderRequirementsTabs();
+        renderRequirementsEditor();
+      }
     });
   } catch (err) {
     console.error('Socket error:', err);
@@ -77,7 +90,7 @@ async function loadStudents(showLoading = true) {
   if (showLoading && tbody) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+        <td colspan="10" style="text-align: center; padding: 3rem; color: var(--text-muted);">
           <i class="fa-solid fa-spinner fa-spin"></i> Memuat data mahasiswa...
         </td>
       </tr>
@@ -98,8 +111,14 @@ async function loadStudents(showLoading = true) {
 
     const data = await res.json();
     allStudents = data.mahasiswa || [];
+    if (data.portalsConfig) {
+      globalPortalsConfig = data.portalsConfig;
+    }
 
-    // Update Stats
+    // Render dynamic table headers
+    renderTableHeaders();
+
+    // Update Quick Stats
     updateStats(data);
 
     // Apply Filter & Search
@@ -109,13 +128,39 @@ async function loadStudents(showLoading = true) {
     if (tbody) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="8" style="text-align: center; padding: 2rem; color: #dc2626;">
+          <td colspan="10" style="text-align: center; padding: 2rem; color: #dc2626;">
             Gagal memuat data mahasiswa. Silakan muat ulang halaman.
           </td>
         </tr>
       `;
     }
   }
+}
+
+// Render Table Headers Dynamically
+function renderTableHeaders() {
+  const thead = document.getElementById('studentTableHead');
+  if (!thead) return;
+
+  const portalKeys = Object.keys(globalPortalsConfig);
+  let portalHeadersHtml = '';
+
+  portalKeys.forEach((key) => {
+    const p = globalPortalsConfig[key];
+    const shortName = p && p.nama ? p.nama.split(':')[0].trim() : key;
+    portalHeadersHtml += `<th style="min-width: 140px;">${escapeHtml(shortName)}</th>`;
+  });
+
+  thead.innerHTML = `
+    <tr>
+      <th style="width: 50px;">No</th>
+      <th style="min-width: 180px;">Nama & NIM</th>
+      <th style="min-width: 140px;">Angkatan / Prodi</th>
+      <th style="min-width: 220px;">Judul Skripsi</th>
+      ${portalHeadersHtml}
+      <th style="text-align: right; width: 140px;">Aksi</th>
+    </tr>
+  `;
 }
 
 // Update Quick Stats
@@ -126,8 +171,8 @@ function updateStats(data) {
 
   allStudents.forEach((m) => {
     Object.values(m.portals || {}).forEach((sub) => {
-      if (sub.status === 'PENDING') pending++;
-      if (sub.status === 'APPROVED') approved++;
+      if (sub && sub.status === 'PENDING') pending++;
+      if (sub && sub.status === 'APPROVED') approved++;
     });
   });
 
@@ -150,18 +195,21 @@ function handleSearchFilter() {
   renderTable(filteredStudents);
 }
 
-// Render Table Rows
+// Render Table Rows Dynamically
 function renderTable(students) {
   const tbody = document.getElementById('studentTableBody');
   const countLabel = document.getElementById('studentsCountLabel');
   if (!tbody) return;
+
+  const portalKeys = Object.keys(globalPortalsConfig);
+  const totalCols = 5 + portalKeys.length;
 
   countLabel.textContent = `Menampilkan ${students.length} dari ${allStudents.length} mahasiswa`;
 
   if (students.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+        <td colspan="${totalCols}" style="text-align: center; padding: 3rem; color: var(--text-muted);">
           Tidak ditemukan mahasiswa yang sesuai dengan pencarian.
         </td>
       </tr>
@@ -171,13 +219,20 @@ function renderTable(students) {
 
   let html = '';
   students.forEach((m, idx) => {
-    const p1 = m.portals.PORTAL_1 || { status: 'EMPTY' };
-    const p2 = m.portals.PORTAL_2 || { status: 'EMPTY' };
-    const p3 = m.portals.PORTAL_3 || { status: 'EMPTY' };
+    let portalCellsHtml = '';
 
-    const metaP1 = STATUS_META[p1.status] || STATUS_META.EMPTY;
-    const metaP2 = STATUS_META[p2.status] || STATUS_META.EMPTY;
-    const metaP3 = STATUS_META[p3.status] || STATUS_META.EMPTY;
+    portalKeys.forEach((key) => {
+      const pData = (m.portals && m.portals[key]) || { status: 'EMPTY' };
+      const meta = STATUS_META[pData.status] || STATUS_META.EMPTY;
+
+      portalCellsHtml += `
+        <td>
+          <span class="badge-status ${meta.cls}" style="font-size: 0.68rem; padding: 0.25rem 0.6rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+            <i class="${meta.icon}"></i> ${meta.label}
+          </span>
+        </td>
+      `;
+    });
 
     html += `
       <tr>
@@ -197,21 +252,7 @@ function renderTable(students) {
             ${m.judulSkripsi ? escapeHtml(m.judulSkripsi) : '<em style="color:#94a3b8;">Belum ada judul</em>'}
           </div>
         </td>
-        <td>
-          <span class="badge-status ${metaP1.cls}" style="font-size: 0.68rem; padding: 0.25rem 0.6rem;">
-            <i class="${metaP1.icon}"></i> ${metaP1.label}
-          </span>
-        </td>
-        <td>
-          <span class="badge-status ${metaP2.cls}" style="font-size: 0.68rem; padding: 0.25rem 0.6rem;">
-            <i class="${metaP2.icon}"></i> ${metaP2.label}
-          </span>
-        </td>
-        <td>
-          <span class="badge-status ${metaP3.cls}" style="font-size: 0.68rem; padding: 0.25rem 0.6rem;">
-            <i class="${metaP3.icon}"></i> ${metaP3.label}
-          </span>
-        </td>
+        ${portalCellsHtml}
         <td style="text-align: right;">
           <div style="display: inline-flex; align-items: center; gap: 0.35rem;">
             <button class="btn-view-berkas" onclick="openVerificationModal(${m.id})" title="Periksa Berkas & Drive">
@@ -316,9 +357,6 @@ async function handleUpdateStudent(event) {
 // ==========================================
 // MODAL: KELOLA PERSYARATAN BERKAS PORTAL
 // ==========================================
-let globalPortalsConfig = {};
-let activeReqPortalKey = 'PORTAL_1';
-
 async function openRequirementsModal() {
   try {
     const res = await fetch('/api/admin/portals-config', {
@@ -327,7 +365,11 @@ async function openRequirementsModal() {
     const data = await res.json();
     if (data.success && data.portals) {
       globalPortalsConfig = data.portals;
-      activeReqPortalKey = 'PORTAL_1';
+      const keys = Object.keys(globalPortalsConfig);
+      if (!keys.includes(activeReqPortalKey)) {
+        activeReqPortalKey = keys[0] || 'PORTAL_1';
+      }
+      renderRequirementsTabs();
       renderRequirementsEditor();
       document.getElementById('requirementsModal').style.display = 'flex';
     }
@@ -345,17 +387,55 @@ function closeRequirementsModal() {
   document.getElementById('requirementsModal').style.display = 'none';
 }
 
+function renderRequirementsTabs() {
+  const container = document.getElementById('reqPortalTabsContainer');
+  if (!container) return;
+
+  const keys = Object.keys(globalPortalsConfig);
+  let html = '';
+
+  keys.forEach((k) => {
+    const p = globalPortalsConfig[k];
+    const shortTitle = p && p.nama ? p.nama.split(':')[0].trim() : k;
+    const isActive = k === activeReqPortalKey;
+    html += `
+      <button type="button" class="tab-btn ${isActive ? 'active' : ''}" onclick="switchReqPortal('${k}')">
+        ${escapeHtml(shortTitle)}
+      </button>
+    `;
+  });
+
+  // Tombol "+ Tambah Portal Baru"
+  html += `
+    <button type="button" class="tab-btn" onclick="promptAddNewPortal()" style="background: #e0f2fe; color: #0284c7; border: 1px dashed #38bdf8; font-weight: 700;">
+      <i class="fa-solid fa-plus"></i> Tambah Portal Baru
+    </button>
+  `;
+
+  container.innerHTML = html;
+}
+
 function switchReqPortal(portalKey) {
   activeReqPortalKey = portalKey;
-  document.getElementById('reqTabPortal1').className = `tab-btn ${portalKey === 'PORTAL_1' ? 'active' : ''}`;
-  document.getElementById('reqTabPortal2').className = `tab-btn ${portalKey === 'PORTAL_2' ? 'active' : ''}`;
-  document.getElementById('reqTabPortal3').className = `tab-btn ${portalKey === 'PORTAL_3' ? 'active' : ''}`;
+  renderRequirementsTabs();
   renderRequirementsEditor();
 }
 
 function renderRequirementsEditor() {
   const portal = globalPortalsConfig[activeReqPortalKey];
-  if (!portal) return;
+  const deleteBtn = document.getElementById('btnDeleteReqPortal');
+
+  if (!portal) {
+    document.getElementById('reqPortalName').value = '';
+    document.getElementById('reqPortalDesc').value = '';
+    document.getElementById('reqDocsContainer').innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem;">Pilih atau buat portal terlebih dahulu.</p>';
+    if (deleteBtn) deleteBtn.style.display = 'none';
+    return;
+  }
+
+  if (deleteBtn) {
+    deleteBtn.style.display = 'inline-flex';
+  }
 
   document.getElementById('reqPortalName').value = portal.nama || '';
   document.getElementById('reqPortalDesc').value = portal.deskripsi || '';
@@ -370,7 +450,7 @@ function renderRequirementsEditor() {
         <input type="text" class="input-portal-single req-doc-name" value="${escapeHtml(b.nama)}" placeholder="Nama Syarat Berkas" style="font-size: 0.82rem; padding: 0.5rem 0.75rem;">
         <input type="text" class="input-portal-single req-doc-desc" value="${escapeHtml(b.keterangan)}" placeholder="Keterangan / Ketentuan" style="font-size: 0.82rem; padding: 0.5rem 0.75rem;">
       </div>
-      <button type="button" onclick="removeDocRequirementRow(this)" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; padding: 0.45rem 0.65rem; cursor: pointer;">
+      <button type="button" onclick="removeDocRequirementRow(this)" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; padding: 0.45rem 0.65rem; cursor: pointer;" title="Hapus Dokumen">
         <i class="fa-solid fa-trash-can"></i>
       </button>
     </div>
@@ -391,7 +471,7 @@ function addDocRequirementRow() {
       <input type="text" class="input-portal-single req-doc-name" placeholder="Nama Dokumen Baru" style="font-size: 0.82rem; padding: 0.5rem 0.75rem;">
       <input type="text" class="input-portal-single req-doc-desc" placeholder="Keterangan / Ketentuan" style="font-size: 0.82rem; padding: 0.5rem 0.75rem;">
     </div>
-    <button type="button" onclick="removeDocRequirementRow(this)" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; padding: 0.45rem 0.65rem; cursor: pointer;">
+    <button type="button" onclick="removeDocRequirementRow(this)" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; padding: 0.45rem 0.65rem; cursor: pointer;" title="Hapus Dokumen">
       <i class="fa-solid fa-trash-can"></i>
     </button>
   `;
@@ -403,10 +483,167 @@ function removeDocRequirementRow(btn) {
   if (row) row.remove();
 }
 
+// Modal dialog untuk menambah Portal Baru
+async function promptAddNewPortal() {
+  const nextNumber = Object.keys(globalPortalsConfig).length + 1;
+
+  const { value: formValues } = await Swal.fire({
+    title: '<i class="fa-solid fa-folder-plus" style="color:#0284c7;"></i> Tambah Portal Baru',
+    html: `
+      <div style="text-align: left; font-size: 0.85rem;">
+        <p style="color: #64748b; margin-bottom: 1rem;">
+          Buat tahapan portal skripsi baru. Mahasiswa akan langsung dapat mengunggah berkas untuk tahapan ini.
+        </p>
+        <div style="margin-bottom: 0.75rem;">
+          <label style="font-weight: 600; display: block; margin-bottom: 0.3rem;">Nama Tahapan Portal *</label>
+          <input id="swal-portal-name" class="swal2-input" placeholder="Contoh: Portal ${nextNumber}: Pendaftaran Ujian Tutup / Yudisium" style="width: 100%; margin: 0; box-sizing: border-box; font-size: 0.85rem;" value="Portal ${nextNumber}: ">
+        </div>
+        <div>
+          <label style="font-weight: 600; display: block; margin-bottom: 0.3rem;">Deskripsi / Petunjuk Tahapan</label>
+          <textarea id="swal-portal-desc" class="swal2-textarea" placeholder="Contoh: Pengumpulan berkas persyaratan sebelum penetapan kelulusan..." style="width: 100%; margin: 0; box-sizing: border-box; font-size: 0.85rem; min-height: 70px;"></textarea>
+        </div>
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: '<i class="fa-solid fa-plus"></i> Tambahkan Portal',
+    cancelButtonText: 'Batal',
+    confirmButtonColor: '#0d2346',
+    cancelButtonColor: '#64748b',
+    preConfirm: () => {
+      const nama = document.getElementById('swal-portal-name').value.trim();
+      const deskripsi = document.getElementById('swal-portal-desc').value.trim();
+      if (!nama) {
+        Swal.showValidationMessage('Nama tahapan portal wajib diisi!');
+        return false;
+      }
+      return { nama, deskripsi };
+    }
+  });
+
+  if (!formValues) return;
+
+  try {
+    const res = await fetch('/api/admin/portals-config', {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(formValues),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menambah Portal',
+        text: data.message || 'Terjadi kesalahan.',
+        confirmButtonColor: '#0d2346'
+      });
+      return;
+    }
+
+    globalPortalsConfig = data.portals;
+    activeReqPortalKey = data.portalKey;
+
+    renderRequirementsTabs();
+    renderRequirementsEditor();
+    loadStudents(false);
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Portal Berhasil Dibuat!',
+      text: `${data.portal.nama} telah ditambahkan. Anda sekarang dapat menambahkan syarat dokumen di bawah ini.`,
+      confirmButtonColor: '#164e87',
+      timer: 2500,
+      showConfirmButton: false
+    });
+  } catch (err) {
+    console.error(err);
+    Swal.fire({
+      icon: 'error',
+      title: 'Koneksi Gagal',
+      text: 'Tidak dapat menambahkan portal ke server.',
+      confirmButtonColor: '#0d2346'
+    });
+  }
+}
+
+// Hapus Portal yang sedang aktif di modal
+async function handleDeleteCurrentPortal() {
+  const portal = globalPortalsConfig[activeReqPortalKey];
+  if (!portal) return;
+
+  const result = await Swal.fire({
+    title: `Hapus ${portal.nama}?`,
+    text: `Tahapan portal ini beserta seluruh syarat dokumennya akan dihapus dari sistem.`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#dc2626',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: '<i class="fa-solid fa-trash"></i> Ya, Hapus Portal',
+    cancelButtonText: 'Batal'
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    const res = await fetch(`/api/admin/portals-config/${activeReqPortalKey}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menghapus',
+        text: data.message || 'Gagal menghapus portal.',
+        confirmButtonColor: '#0d2346'
+      });
+      return;
+    }
+
+    globalPortalsConfig = data.portals;
+    const remainingKeys = Object.keys(globalPortalsConfig);
+    activeReqPortalKey = remainingKeys[0] || '';
+
+    renderRequirementsTabs();
+    renderRequirementsEditor();
+    loadStudents(false);
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Portal Dihapus',
+      text: data.message,
+      timer: 2000,
+      showConfirmButton: false
+    });
+  } catch (err) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Koneksi Gagal',
+      text: 'Tidak dapat menghubungi server.',
+      confirmButtonColor: '#0d2346'
+    });
+  }
+}
+
+// Simpan Persyaratan Portal
 async function savePortalRequirements() {
   const nama = document.getElementById('reqPortalName').value.trim();
   const deskripsi = document.getElementById('reqPortalDesc').value.trim();
   const docRows = document.querySelectorAll('#reqDocsContainer .doc-req-item');
+
+  if (!nama) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Nama Portal Wajib Diisi',
+      text: 'Silakan isi nama tahapan portal.',
+      confirmButtonColor: '#0d2346'
+    });
+    return;
+  }
 
   const berkas = [];
   docRows.forEach((r, idx) => {
@@ -448,8 +685,10 @@ async function savePortalRequirements() {
     }
 
     globalPortalsConfig[activeReqPortalKey] = data.portal;
+    renderRequirementsTabs();
     saveBtn.disabled = false;
     saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>Simpan Persyaratan Portal</span>`;
+    loadStudents(false);
 
     Swal.fire({
       icon: 'success',
@@ -600,16 +839,18 @@ async function openVerificationModal(studentId, switchTabToFirst = true) {
 
     const data = await res.json();
     currentViewingStudent = data.mahasiswa;
-    currentViewingPortals = data.portals;
+    currentViewingPortals = data.portals || [];
 
     // Header info
     document.getElementById('vModalStudentTitle').textContent = `Periksa Berkas: ${currentViewingStudent.nama}`;
     document.getElementById('vModalStudentMeta').textContent = `NIM: ${currentViewingStudent.nim} • Angkatan: ${currentViewingStudent.angkatan} • ${currentViewingStudent.prodi}`;
 
-    if (switchTabToFirst) {
-      activePortalKey = 'PORTAL_1';
+    const portalKeys = currentViewingPortals.map((p) => p.id);
+    if (switchTabToFirst || !portalKeys.includes(activePortalKey)) {
+      activePortalKey = portalKeys[0] || 'PORTAL_1';
     }
 
+    renderVerificationTabs();
     renderActiveVerificationPortal();
     document.getElementById('verificationModal').style.display = 'flex';
   } catch (err) {
@@ -625,14 +866,27 @@ function closeVerificationModal() {
   selectedDecision = null;
 }
 
+function renderVerificationTabs() {
+  const container = document.getElementById('vPortalTabsContainer');
+  if (!container) return;
+
+  let html = '';
+  currentViewingPortals.forEach((p) => {
+    const shortTitle = p && p.nama ? p.nama.split(':')[0].trim() : p.id;
+    const isActive = p.id === activePortalKey;
+    html += `
+      <button type="button" class="tab-btn ${isActive ? 'active' : ''}" onclick="switchVerificationPortal('${p.id}')">
+        ${escapeHtml(shortTitle)}
+      </button>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
 function switchVerificationPortal(portalKey) {
   activePortalKey = portalKey;
-
-  // Active tab styling
-  document.getElementById('vTabPortal1').className = `tab-btn ${portalKey === 'PORTAL_1' ? 'active' : ''}`;
-  document.getElementById('vTabPortal2').className = `tab-btn ${portalKey === 'PORTAL_2' ? 'active' : ''}`;
-  document.getElementById('vTabPortal3').className = `tab-btn ${portalKey === 'PORTAL_3' ? 'active' : ''}`;
-
+  renderVerificationTabs();
   renderActiveVerificationPortal();
 }
 
@@ -655,7 +909,7 @@ function renderActiveVerificationPortal() {
 
   // Checklist Berkas
   const checklistEl = document.getElementById('vChecklistDocs');
-  checklistEl.innerHTML = portal.berkas
+  checklistEl.innerHTML = (portal.berkas || [])
     .map(
       (b) => `
     <li style="display: flex; align-items: flex-start; gap: 0.4rem;">
@@ -701,19 +955,16 @@ function renderActiveVerificationPortal() {
 // Konverter URL Google Drive ke mode Preview responsif
 function convertGoogleDriveUrlToEmbed(url) {
   try {
-    // Jika folder Google Drive: /folders/FOLDER_ID
     const folderMatch = url.match(/\/folders\/([a-zA-Z0-9_-]+)/);
     if (folderMatch && folderMatch[1]) {
       return `https://drive.google.com/embeddedfolderview?id=${folderMatch[1]}#grid`;
     }
 
-    // Jika file Google Drive: /file/d/FILE_ID/view atau /d/FILE_ID
     const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/\/d\/([a-zA-Z0-9_-]+)/);
     if (fileMatch && fileMatch[1]) {
       return `https://drive.google.com/file/d/${fileMatch[1]}/preview`;
     }
 
-    // Fallback: jika format langsung ID
     const idMatch = url.match(/id=([a-zA-Z0-9_-]+)/);
     if (idMatch && idMatch[1]) {
       return `https://drive.google.com/embeddedfolderview?id=${idMatch[1]}#grid`;
@@ -868,3 +1119,4 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
+
