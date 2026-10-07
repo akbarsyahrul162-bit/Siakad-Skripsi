@@ -52,6 +52,20 @@ function initSocket() {
     socket.on('portals_config_updated', () => {
       loadPortalData(false);
     });
+
+    // Real-time listener: ketika jadwal ujian diperbarui
+    socket.on('jadwal_updated', () => {
+      loadPortalData(false);
+    });
+
+    // Real-time listener: ketika data profil atau whitelist diperbarui
+    socket.on('whitelist_updated', (data) => {
+      if (!data || !currentStudent) {
+        loadPortalData(false);
+      } else if (data.mahasiswa && data.mahasiswa.id === currentStudent.id) {
+        loadPortalData(false);
+      }
+    });
   } catch (err) {
     console.error('Socket error:', err);
   }
@@ -120,6 +134,7 @@ async function loadPortalData(showLoading = true) {
     currentPortals = data.portals;
 
     renderStudentProfile(currentStudent);
+    renderMahasiswaJadwal(data.jadwal || []);
     renderProgressTracker(currentPortals);
     renderPortals(currentPortals);
   } catch (err) {
@@ -132,6 +147,180 @@ async function loadPortalData(showLoading = true) {
       `;
     }
   }
+}
+
+// Render profile info & HD avatar
+function renderStudentProfile(mhs) {
+  document.getElementById('navStudentName').textContent = mhs.nama;
+  document.getElementById('navStudentNim').textContent = `NIM: ${mhs.nim}`;
+  document.getElementById('studentFullName').textContent = mhs.nama;
+  document.getElementById('chipNim').innerHTML = `<i class="fa-solid fa-id-card"></i> NIM: ${mhs.nim}`;
+  document.getElementById('chipProdi').innerHTML = `<i class="fa-solid fa-book-open"></i> ${mhs.prodi || 'Psikologi'}`;
+  document.getElementById('chipAngkatan').innerHTML = `<i class="fa-solid fa-calendar"></i> Angkatan: ${mhs.angkatan}`;
+  document.getElementById('studentThesisTitle').textContent = mhs.judulSkripsi || 'Judul skripsi belum diinput';
+
+  // Avatar Photo or Initials
+  const avatarEl = document.getElementById('avatarInitial');
+  if (avatarEl) {
+    if (mhs.fotoProfil) {
+      avatarEl.innerHTML = `<img src="${mhs.fotoProfil}" alt="${mhs.nama}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" />`;
+    } else {
+      const initials = mhs.nama
+        .split(' ')
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
+      avatarEl.textContent = initials || 'M';
+    }
+  }
+}
+
+// Render Card Jadwal Ujian Mahasiswa
+function renderMahasiswaJadwal(jadwalList) {
+  const badgeEl = document.getElementById('mhsJadwalBadge');
+  const contentEl = document.getElementById('mhsJadwalContent');
+  if (!contentEl) return;
+
+  if (!Array.isArray(jadwalList) || jadwalList.length === 0) {
+    if (badgeEl) badgeEl.style.display = 'none';
+    contentEl.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 0.6rem; color: #64748b;">
+        <i class="fa-solid fa-circle-info" style="color: #94a3b8; font-size: 1.1rem;"></i>
+        <span>Belum ada jadwal ujian yang diagendakan oleh dosen pembimbing. Pantau terus status berkas Anda.</span>
+      </div>
+    `;
+    return;
+  }
+
+  // Cari jadwal terdekat yang statusnya TERJADWAL, atau yang paling baru
+  const activeJadwal = jadwalList.find((j) => j.status === 'TERJADWAL') || jadwalList[0];
+  const tgl = new Date(activeJadwal.tanggal).toLocaleDateString('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+
+  if (badgeEl) {
+    badgeEl.className = `badge-exam badge-exam-${activeJadwal.jenis}`;
+    badgeEl.textContent = `${activeJadwal.jenis} (${activeJadwal.status})`;
+    badgeEl.style.display = 'inline-flex';
+  }
+
+  contentEl.innerHTML = `
+    <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.4rem;">
+        <span style="font-size: 1rem; font-weight: 700; color: var(--primary-navy);">
+          <i class="fa-solid fa-graduation-cap" style="color: var(--primary-blue);"></i> Pelaksanaan Ujian ${activeJadwal.jenis}
+        </span>
+        <span style="font-size: 0.75rem; color: #10b981; font-weight: 700; background: #ecfdf5; padding: 0.2rem 0.55rem; border-radius: 4px;">
+          Status: ${activeJadwal.status}
+        </span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.6rem; margin-top: 0.35rem; font-size: 0.85rem;">
+        <div><i class="fa-regular fa-calendar" style="color: var(--primary-blue); width: 16px;"></i> Tanggal: <strong>${tgl}</strong></div>
+        <div><i class="fa-regular fa-clock" style="color: var(--primary-blue); width: 16px;"></i> Pukul: <strong>${escapeHtml(activeJadwal.jam)} WITA</strong></div>
+        <div><i class="fa-solid fa-location-dot" style="color: var(--primary-blue); width: 16px;"></i> Ruangan: <strong>${escapeHtml(activeJadwal.ruangan)}</strong></div>
+      </div>
+      ${activeJadwal.catatan ? `
+        <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed var(--border-color); font-size: 0.8rem; color: #475569;">
+          <strong><i class="fa-solid fa-circle-exclamation" style="color: #d97706;"></i> Catatan Khusus Dosen:</strong> ${escapeHtml(activeJadwal.catatan)}
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+// Trigger File Input untuk Foto Profil
+function triggerPhotoUpload() {
+  const input = document.getElementById('avatarFileInput');
+  if (input) input.click();
+}
+
+// Handle Photo Selected & Client-Side Compress ke 400x400 HD
+function handlePhotoSelected(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Format Tidak Sesuai',
+      text: 'Harap pilih file gambar (JPG, PNG, atau WEBP).',
+      confirmButtonColor: '#0d2346',
+    });
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = async () => {
+      // Client-side crop & resize ke 400x400 HD (persegi, proporsional)
+      const canvas = document.createElement('canvas');
+      canvas.width = 400;
+      canvas.height = 400;
+      const ctx = canvas.getContext('2d');
+
+      // Aspect ratio crop cover (center)
+      const minDim = Math.min(img.width, img.height);
+      const startX = (img.width - minDim) / 2;
+      const startY = (img.height - minDim) / 2;
+
+      ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, 400, 400);
+
+      // Export JPEG quality 0.9 (HD & tajam, ~40-60KB sangat hemat & tidak menumpuk)
+      const base64Photo = canvas.toDataURL('image/jpeg', 0.9);
+
+      // Kirim ke server
+      Swal.fire({
+        title: 'Mengunggah Foto Profil...',
+        html: 'Mengompresi ke 400x400 HD & menyimpan foto...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
+      try {
+        const res = await fetch('/api/mahasiswa/foto', {
+          method: 'PUT',
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ fotoProfil: base64Photo }),
+        });
+
+        const resData = await res.json();
+        if (!res.ok) {
+          throw new Error(resData.message || 'Gagal menyimpan foto profil.');
+        }
+
+        if (currentStudent) {
+          currentStudent.fotoProfil = base64Photo;
+        }
+
+        renderStudentProfile(currentStudent);
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Foto Profil Diperbarui!',
+          text: 'Foto profil HD Anda berhasil disimpan dan disinkronkan real-time.',
+          timer: 1800,
+          showConfirmButton: false,
+        });
+      } catch (err) {
+        console.error(err);
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Mengunggah',
+          text: err.message || 'Terjadi kesalahan saat mengunggah foto profil.',
+          confirmButtonColor: '#0d2346',
+        });
+      }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 // Render progress tracker card
@@ -189,26 +378,6 @@ function renderProgressTracker(portals) {
       })
       .join('');
   }
-}
-
-// Render profile info
-function renderStudentProfile(mhs) {
-  document.getElementById('navStudentName').textContent = mhs.nama;
-  document.getElementById('navStudentNim').textContent = `NIM: ${mhs.nim}`;
-  document.getElementById('studentFullName').textContent = mhs.nama;
-  document.getElementById('chipNim').innerHTML = `<i class="fa-solid fa-id-card"></i> NIM: ${mhs.nim}`;
-  document.getElementById('chipProdi').innerHTML = `<i class="fa-solid fa-book-open"></i> ${mhs.prodi || 'Teknik Informatika'}`;
-  document.getElementById('chipAngkatan').innerHTML = `<i class="fa-solid fa-calendar"></i> Angkatan: ${mhs.angkatan}`;
-  document.getElementById('studentThesisTitle').textContent = mhs.judulSkripsi || 'Judul skripsi belum diinput';
-
-  // Initials
-  const initials = mhs.nama
-    .split(' ')
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-  document.getElementById('avatarInitial').textContent = initials || 'M';
 }
 
 // Modal Edit Judul Skripsi oleh Mahasiswa

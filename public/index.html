@@ -1,71 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Portal Akademik & Skripsi - Gate Login</title>
+  <title>Beranda Akademik - Portal Monitoring Skripsi</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <style>
-    .input-portal-single {
-      width: 100%;
-      padding: 0.85rem 1rem 0.85rem 2.8rem;
-      border: 2px solid var(--border-color);
-      border-radius: 10px;
-      font-size: 0.95rem;
-      outline: none;
-      transition: all 0.2s ease;
-      background: #f8fafc;
-      font-weight: 500;
-    }
-    .input-portal-single:focus {
-      background: #ffffff;
-      border-color: #2563eb;
-      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
-    }
-    .btn-portal-submit {
-      width: 100%;
-      padding: 0.95rem;
-      background: linear-gradient(135deg, #164e87 0%, #0d2346 100%);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(13, 35, 70, 0.25);
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.6rem;
-      margin-top: 1.25rem;
-    }
-    .btn-portal-submit:hover {
-      opacity: 0.95;
-      transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(13, 35, 70, 0.35);
-    }
-    .btn-portal-submit:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-    .demo-chip-btn {
-      font-size: 0.75rem;
-      padding: 0.35rem 0.65rem;
-      border-radius: 6px;
-      border: 1px solid #cbd5e1;
-      background: white;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.15s ease;
-    }
-    .demo-chip-btn:hover {
-      background: #f1f5f9;
-      border-color: #94a3b8;
-    }
-  </style>
 </head>
 <body>
 
@@ -78,214 +18,199 @@
         </div>
         <div class="brand-title">
           <span class="main-name">SIAKAD SKRIPSI</span>
-          <span class="sub-name">Portal Verifikasi Berkas Akademik Terpadu</span>
+          <span class="sub-name">Portal Akademik Mahasiswa Bimbingan</span>
         </div>
+      </div>
+      <div class="nav-user-meta">
+        <div class="live-indicator">
+          <span class="live-dot"></span>
+          <span>Live Sync</span>
+        </div>
+        <a href="/login.html" class="btn-primary" style="width: auto; padding: 0.55rem 1.25rem; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem;">
+          <i class="fa-solid fa-right-to-bracket"></i>
+          <span>Masuk ke Portal</span>
+        </a>
       </div>
     </div>
   </header>
 
-  <!-- Login Gateway Container -->
-  <main class="login-page-wrapper">
-    <div class="login-gateway-card">
-      
-      <!-- Left Side: Campus Identity & Announcement -->
-      <div class="login-banner-side">
-        <div class="banner-head">
-          <span class="academic-chip">
-            <i class="fa-solid fa-building-columns"></i> Tahun Akademik 2024/2025 Genap
-          </span>
-          <h1>Sistem Pengumpulan & Verifikasi Berkas Skripsi</h1>
-          <p>
-            Portal akademik terpadu untuk pengumpulan dan verifikasi berkas Seminar Proposal, Seminar Hasil, dan Ujian Meja / Skripsi.
-          </p>
-
-          <div class="academic-announcements">
-            <div class="announcement-title">
-              <i class="fa-solid fa-circle-info"></i> Petunjuk Autentikasi
-            </div>
-            <div class="announcement-text">
-              • <strong>Dosen / Admin:</strong> Masukkan kata sandi <code>admin12345</code> (atau username <code>admin</code>) untuk masuk ke Dashboard Monitoring.<br><br>
-              • <strong>Mahasiswa:</strong> Masukkan NIM Anda yang sudah didaftarkan oleh dosen di dashboard admin.
-            </div>
-          </div>
-        </div>
-
-        <div class="banner-foot">
-          © 2026 Bagian Akademik & Fakultas • Sistem Informasi Akademik
-        </div>
+  <!-- Hero Section -->
+  <section class="hero-public">
+    <div class="hero-container">
+      <div class="hero-chip" id="heroChip">
+        <i class="fa-solid fa-building-columns"></i>
+        <span id="txtHeaderChip">Tahun Akademik 2024/2025 Genap</span>
       </div>
-
-      <!-- Right Side: 1 Single Portal Login Form -->
-      <div class="login-form-side">
-        <div class="form-header">
-          <h2>Masuk ke Portal</h2>
-          <p>Gunakan NIM Anda atau Kredensial Dosen / Admin</p>
-        </div>
-
-        <!-- Alert Notification Box -->
-        <div id="loginAlert" class="alert-box"></div>
-
-        <!-- Form 1 Pintu Masuk -->
-        <form id="formUnifiedLogin" action="/api/auth/login-unified" method="POST" onsubmit="handleUnifiedLogin(event)">
-          
-          <!-- 1. Kolom Username -->
-          <div class="form-group" style="margin-bottom: 0.85rem;">
-            <label for="inputUsername" style="font-size: 0.85rem; font-weight: 700; color: var(--primary-navy, #0d2346); margin-bottom: 0.4rem; display: block;">
-              Username
-            </label>
-            <div class="input-with-icon">
-              <i class="fa-solid fa-user field-icon" style="font-size: 1rem; color: #64748b;"></i>
-              <input 
-                type="text" 
-                id="inputUsername" 
-                name="username"
-                class="input-portal-single"
-                placeholder="Username akun" 
-                autocomplete="username"
-              >
-            </div>
-          </div>
-
-          <!-- 2. Kolom NIM Mahasiswa -->
-          <div class="form-group" style="margin-bottom: 0.85rem;">
-            <label for="inputNim" style="font-size: 0.85rem; font-weight: 700; color: var(--primary-navy, #0d2346); margin-bottom: 0.4rem; display: block;">
-              Nomor Induk Mahasiswa (NIM)
-            </label>
-            <div class="input-with-icon">
-              <i class="fa-solid fa-id-card field-icon" style="font-size: 1rem; color: #64748b;"></i>
-              <input 
-                type="text" 
-                id="inputNim" 
-                name="nim"
-                class="input-portal-single"
-                placeholder="NIM Mahasiswa" 
-                autocomplete="off"
-              >
-            </div>
-            <small style="color: #64748b; font-size: 0.72rem; margin-top: 0.25rem; display: block;">
-              *Khusus Dosen / Admin: kolom NIM dapat dikosongkan.
-            </small>
-          </div>
-
-          <!-- 3. Kolom Kata Sandi -->
-          <div class="form-group" style="margin-bottom: 0.85rem;">
-            <label for="inputPassword" style="font-size: 0.85rem; font-weight: 700; color: var(--primary-navy, #0d2346); margin-bottom: 0.4rem; display: block;">
-              Kata Sandi (Password)
-            </label>
-            <div class="input-with-icon">
-              <i class="fa-solid fa-lock field-icon" style="font-size: 1rem; color: #64748b;"></i>
-              <input 
-                type="password" 
-                id="inputPassword" 
-                name="password"
-                class="input-portal-single"
-                placeholder="Kata Sandi" 
-                autocomplete="current-password"
-              >
-            </div>
-          </div>
-
-          <button type="submit" class="btn-portal-submit" id="btnSubmitUnified">
-            <span>Masuk ke Portal</span>
-            <i class="fa-solid fa-arrow-right"></i>
-          </button>
-        </form>
-
-        <!-- Helpdesk Footer -->
-        <div class="helpdesk-info" style="margin-top: 1.5rem; font-size: 0.8rem; color: #64748b; text-align: center;">
-          Butuh aktivasi NIM? Hubungi <strong>Helpdesk Akademik</strong> Gedung Rektorat Lt. 1.
-        </div>
+      <h1 class="hero-title" id="txtMainTitle">Portal Monitoring Skripsi & Akademik Bimbingan</h1>
+      <p class="hero-subtitle" id="txtSubtitle">
+        Sistem pemantauan berkas seminar proposal, seminar hasil, dan ujian skripsi secara transparan, terintegrasi, dan real-time.
+      </p>
+      <div class="hero-actions">
+        <a href="#sectionJadwal" class="btn-hero-primary">
+          <i class="fa-regular fa-calendar-check"></i>
+          <span>Jadwal Ujian Terdekat</span>
+        </a>
+        <a href="#sectionDirektori" class="btn-hero-secondary">
+          <i class="fa-solid fa-users"></i>
+          <span>Direktori Mahasiswa</span>
+        </a>
+        <a href="/login.html" class="btn-hero-secondary" style="background: rgba(255,255,255,0.18);">
+          <i class="fa-solid fa-arrow-right-to-bracket"></i>
+          <span>Login Akun</span>
+        </a>
       </div>
-
     </div>
+  </section>
+
+  <!-- Main Container -->
+  <main class="dashboard-container" style="margin-top: -1.75rem;">
+
+    <!-- Summary Stats Cards -->
+    <div class="admin-stats-row" style="margin-bottom: 2rem;">
+      <div class="stat-card">
+        <div class="stat-card-info">
+          <div class="stat-num" id="statTotalStudents">0</div>
+          <div class="stat-lbl">Total Mahasiswa Bimbingan</div>
+        </div>
+        <div class="stat-icon stat-icon-blue">
+          <i class="fa-solid fa-user-graduate"></i>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-card-info">
+          <div class="stat-num" id="statSempro" style="color: #0284c7;">0</div>
+          <div class="stat-lbl">Lulus Seminar Proposal</div>
+        </div>
+        <div class="stat-icon" style="background: #e0f2fe; color: #0284c7;">
+          <i class="fa-solid fa-file-circle-check"></i>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-card-info">
+          <div class="stat-num" id="statSemhas" style="color: #d97706;">0</div>
+          <div class="stat-lbl">Lulus Seminar Hasil</div>
+        </div>
+        <div class="stat-icon stat-icon-yellow">
+          <i class="fa-solid fa-clipboard-check"></i>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-card-info">
+          <div class="stat-num" id="statSkripsi" style="color: #059669;">0</div>
+          <div class="stat-lbl">Lulus Ujian Skripsi</div>
+        </div>
+        <div class="stat-icon stat-icon-green">
+          <i class="fa-solid fa-award"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: Agenda Jadwal Ujian Terdekat -->
+    <section id="sectionJadwal" style="margin-bottom: 2.5rem;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+          <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--primary-navy); display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-regular fa-calendar-days" style="color: var(--primary-blue);"></i>
+            Agenda Jadwal Ujian Terdekat
+          </h2>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">
+            Jadwal pelaksanaan Seminar Proposal, Seminar Hasil, dan Sidang Skripsi yang telah diverifikasi
+          </span>
+        </div>
+        <span class="live-indicator">
+          <span class="live-dot"></span>
+          <span id="jadwalCountLabel">0 Terjadwal</span>
+        </span>
+      </div>
+
+      <div id="jadwalListContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1rem;">
+        <div style="grid-column: 1 / -1; text-align: center; padding: 2.5rem; background: white; border-radius: 12px; border: 1px dashed var(--border-color); color: var(--text-muted);">
+          <i class="fa-solid fa-spinner fa-spin"></i> Memuat agenda ujian...
+        </div>
+      </div>
+    </section>
+
+    <!-- Section: Direktori Mahasiswa Bimbingan -->
+    <section id="sectionDirektori">
+      <!-- Toolbar: Search & Filter -->
+      <div class="toolbar-card">
+        <div class="toolbar-filters" style="width: 100%;">
+          <div class="search-box" style="flex: 1;">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input 
+              type="text" 
+              id="searchStudentInput" 
+              placeholder="Cari nama mahasiswa, NIM, atau judul skripsi..." 
+              oninput="handleFilter()"
+            >
+          </div>
+
+          <select class="select-filter" id="filterAngkatan" onchange="handleFilter()">
+            <option value="">Semua Angkatan</option>
+            <option value="2021">Angkatan 2021</option>
+            <option value="2020">Angkatan 2020</option>
+            <option value="2019">Angkatan 2019</option>
+          </select>
+
+          <select class="select-filter" id="filterStatus" onchange="handleFilter()">
+            <option value="">Semua Status</option>
+            <option value="Lulus Skripsi">Lulus Skripsi</option>
+            <option value="Lulus Semhas">Lulus Semhas</option>
+            <option value="Lulus Sempro">Lulus Sempro</option>
+            <option value="Dalam Revisi">Dalam Revisi</option>
+            <option value="Menunggu Verifikasi">Menunggu Verifikasi</option>
+            <option value="Baru Terdaftar">Baru Terdaftar</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Table Directory Card -->
+      <div class="table-card">
+        <div style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+          <h3 style="font-size: 1rem; color: var(--primary-navy); font-weight: 700;">
+            <i class="fa-solid fa-list-check" style="margin-right: 0.4rem; color: var(--primary-blue);"></i>
+            Direktori Progres Mahasiswa Bimbingan (Psikologi)
+          </h3>
+          <span style="font-size: 0.78rem; color: var(--text-muted);" id="studentsCountLabel">
+            Menampilkan 0 mahasiswa
+          </span>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="academic-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">No</th>
+                <th style="min-width: 240px;">Mahasiswa</th>
+                <th style="min-width: 160px;">Program Studi & Angkatan</th>
+                <th style="min-width: 280px;">Judul Skripsi</th>
+                <th style="min-width: 150px;">Progres / Status</th>
+                <th style="min-width: 180px;">Jadwal Ujian</th>
+              </tr>
+            </thead>
+            <tbody id="publicStudentTableBody">
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                  <i class="fa-solid fa-spinner fa-spin"></i> Memuat direktori bimbingan...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
   </main>
 
-  <footer class="academic-footer">
-    Sistem Informasi Manajemen Skripsi & Verifikasi Berkas Terpadu • Universitas Bosowa Style
+  <footer class="academic-footer" id="footerText">
+    Sistem Informasi Manajemen Skripsi & Verifikasi Berkas Terpadu • Program Studi Psikologi
   </footer>
 
-  <!-- Script Proses Masuk Inline -->
-  <script>
-    function showAlert(message, type = 'danger') {
-      const alertBox = document.getElementById('loginAlert');
-      if (!alertBox) return;
-      alertBox.className = `alert-box alert-${type}`;
-      alertBox.innerHTML = `
-        <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
-          <i class="fa-solid fa-${type === 'danger' ? 'triangle-exclamation' : 'circle-check'}" style="margin-top: 2px;"></i>
-          <div>${message}</div>
-        </div>
-      `;
-      alertBox.style.display = 'block';
-    }
-
-    async function handleUnifiedLogin(e) {
-      if (e && e.preventDefault) e.preventDefault();
-      
-      const userEl = document.getElementById('inputUsername');
-      const nimEl = document.getElementById('inputNim');
-      const passEl = document.getElementById('inputPassword');
-
-      const username = userEl ? userEl.value.trim() : '';
-      const nim = nimEl ? nimEl.value.trim() : '';
-      const password = passEl ? passEl.value.trim() : '';
-
-      const btn = document.getElementById('btnSubmitUnified');
-      const alertBox = document.getElementById('loginAlert');
-
-      if (alertBox) alertBox.style.display = 'none';
-
-      // Validasi input
-      if (!username && !nim && !password) {
-        showAlert('Silakan masukkan kredensial Anda (NIM Mahasiswa atau Kata Sandi Dosen).', 'warning');
-        return;
-      }
-
-      if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memverifikasi Akses...`;
-      }
-
-      try {
-        const res = await fetch('/api/auth/login-unified', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            username: username || nim, 
-            nim: nim, 
-            password: password 
-          }),
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          showAlert(data.message || 'Akses ditolak.', 'danger');
-          if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = `<span>Masuk ke Portal</span> <i class="fa-solid fa-arrow-right"></i>`;
-          }
-          return;
-        }
-
-        // Simpan token ke localStorage jika ada
-        if (data.token) {
-          localStorage.setItem('token', data.token);
-        }
-
-        // Langsung arahkan halaman ke dashboard
-        const targetUrl = data.redirect || (data.role === 'DOSEN' ? '/admin.html' : '/mahasiswa.html');
-        window.location.assign(targetUrl);
-
-      } catch (err) {
-        console.error(err);
-        showAlert('Terjadi kesalahan koneksi server.', 'danger');
-        if (btn) {
-          btn.disabled = false;
-          btn.innerHTML = `<span>Masuk ke Portal</span> <i class="fa-solid fa-arrow-right"></i>`;
-        }
-      }
-    }
-  </script>
+  <!-- Socket.io Client -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="/js/beranda.js"></script>
 </body>
 </html>

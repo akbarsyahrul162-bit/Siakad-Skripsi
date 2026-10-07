@@ -18,15 +18,17 @@ model Admin {
 }
 
 model Mahasiswa {
-  id           Int          @id @default(autoincrement())
-  nim          String       @unique
+  id           Int            @id @default(autoincrement())
+  nim          String         @unique
   nama         String
   angkatan     String
-  prodi        String       @default("Teknik Informatika")
+  prodi        String         @default("Psikologi")
   judulSkripsi String?
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  fotoProfil   String?        // Base64 or URL of profile photo
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
   submissions  Submission[]
+  jadwal       JadwalUjian[]
 }
 
 model Submission {
@@ -43,4 +45,25 @@ model Submission {
   updatedAt    DateTime  @updatedAt
 
   @@unique([mahasiswaId, portal])
+}
+
+model JadwalUjian {
+  id          Int       @id @default(autoincrement())
+  mahasiswaId Int
+  mahasiswa   Mahasiswa @relation(fields: [mahasiswaId], references: [id], onDelete: Cascade)
+  jenis       String    // SEMPRO, SEMHAS, SIDANG
+  tanggal     DateTime
+  jam         String    // e.g. "09:00"
+  ruangan     String
+  status      String    @default("TERJADWAL") // TERJADWAL, SELESAI, BATAL
+  catatan     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model SiteConfig {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
 }

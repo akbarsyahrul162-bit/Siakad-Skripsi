@@ -459,4 +459,211 @@ router.delete('/portals-config/:portalKey', (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════════════════════════
+// JADWAL UJIAN — CRUD
+// ══════════════════════════════════════════════════════════════
+
+// Ambil semua jadwal ujian
+router.get('/jadwal', async (req, res) => {
+  try {
+    const jadwalList = await prisma.jadwalUjian.findMany({
+      include: {
+        mahasiswa: { select: { id: true, nim: true, nama: true, angkatan: true, prodi: true } },
+      },
+      orderBy: { tanggal: 'asc' },
+    });
+    return res.json({ success: true, jadwal: jadwalList });
+  } catch (error) {
+    console.error('Error get jadwal:', error);
+    return res.status(500).json({ success: false, message: 'Gagal mengambil jadwal ujian.' });
+  }
+});
+
+// Tambah jadwal ujian baru
+router.post('/jadwal', async (req, res) => {
+  try {
+    const { mahasiswaId, jenis, tanggal, jam, ruangan, catatan } = req.body;
+    if (!mahasiswaId || !jenis || !tanggal || !jam || !ruangan) {
+      return res.status(400).json({ success: false, message: 'Semua field wajib diisi (mahasiswaId, jenis, tanggal, jam, ruangan).' });
+    }
+    if (!['SEMPRO', 'SEMHAS', 'SIDANG'].includes(jenis)) {
+      return res.status(400).json({ success: false, message: 'Jenis ujian tidak valid. Gunakan SEMPRO, SEMHAS, atau SIDANG.' });
+    }
+
+    const jadwal = await prisma.jadwalUjian.create({
+      data: {
+        mahasiswaId: parseInt(mahasiswaId, 10),
+        jenis,
+        tanggal: new Date(tanggal),
+        jam: String(jam).trim(),
+        ruangan: String(ruangan).trim(),
+        catatan: catatan ? String(catatan).trim() : null,
+        status: 'TERJADWAL',
+      },
+      include: {
+        mahasiswa: { select: { id: true, nim: true, nama: true, angkatan: true, prodi: true } },
+      },
+    });
+
+    const io = req.app.get('io');
+    if (io) io.emit('jadwal_updated', { action: 'ADDED', jadwal });
+
+    return res.json({ success: true, message: 'Jadwal ujian berhasil ditambahkan!', jadwal });
+  } catch (error) {
+    console.error('Error create jadwal:', error);
+    return res.status(500).json({ success: false, message: 'Gagal menambahkan jadwal ujian.' });
+  }
+});
+
+// Edit jadwal ujian
+router.put('/jadwal/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { jenis, tanggal, jam, ruangan, catatan, status } = req.body;
+
+    if (jenis && !['SEMPRO', 'SEMHAS', 'SIDANG'].includes(jenis)) {
+      return res.status(400).json({ success: false, message: 'Jenis ujian tidak valid.' });
+    }
+    if (status && !['TERJADWAL', 'SELESAI', 'BATAL'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Status tidak valid.' });
+    }
+
+    const updateData = {};
+    if (jenis) updateData.jenis = jenis;
+    if (tanggal) updateData.tanggal = new Date(tanggal);
+    if (jam) updateData.jam = String(jam).trim();
+    if (ruangan) updateData.ruangan = String(ruangan).trim();
+    if (catatan !== undefined) updateData.catatan = catatan ? String(catatan).trim() : null;
+    if (status) updateData.status = status;
+
+    const jadwal = await prisma.jadwalUjian.update({
+      where: { id },
+      data: updateData,
+      include: {
+        mahasiswa: { select: { id: true, nim: true, nama: true, angkatan: true, prodi: true } },
+      },
+    });
+
+    const io = req.app.get('io');
+    if (io) io.emit('jadwal_updated', { action: 'UPDATED', jadwal });
+
+    return res.json({ success: true, message: 'Jadwal ujian berhasil diperbarui!', jadwal });
+  } catch (error) {
+    console.error('Error update jadwal:', error);
+    return res.status(500).json({ success: false, message: 'Gagal memperbarui jadwal ujian.' });
+  }
+});
+
+// Hapus jadwal ujian
+router.delete('/jadwal/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const jadwal = await prisma.jadwalUjian.findUnique({ where: { id }, include: { mahasiswa: { select: { nama: true, nim: true } } } });
+    if (!jadwal) return res.status(404).json({ success: false, message: 'Jadwal tidak ditemukan.' });
+
+    await prisma.jadwalUjian.delete({ where: { id } });
+
+    const io = req.app.get('io');
+    if (io) io.emit('jadwal_updated', { action: 'DELETED', id });
+
+    return res.json({ success: true, message: `Jadwal ujian ${jadwal.mahasiswa.nama} berhasil dihapus.` });
+  } catch (error) {
+    console.error('Error delete jadwal:', error);
+    return res.status(500).json({ success: false, message: 'Gagal menghapus jadwal ujian.' });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+// SITECONFIG — Edit narasi/teks yang tampil ke mahasiswa/publik
+// ══════════════════════════════════════════════════════════════
+
+// Ambil semua siteconfig
+router.get('/siteconfig', async (req, res) => {
+  try {
+    const configs = await prisma.siteConfig.findMany();
+    const result = {};
+    configs.forEach((c) => { result[c.key] = c.value; });
+    return res.json({ success: true, config: result });
+  } catch (error) {
+    console.error('Error get siteconfig (admin):', error);
+    return res.status(500).json({ success: false, message: 'Gagal mengambil konfigurasi situs.' });
+  }
+});
+
+// Update satu key siteconfig
+router.put('/siteconfig/:key', async (req, res) => {
+  try {
+    const { key } = req.params;
+    const { value } = req.body;
+
+    if (value === undefined || value === null) {
+      return res.status(400).json({ success: false, message: 'Value tidak boleh kosong.' });
+    }
+
+    const updated = await prisma.siteConfig.upsert({
+      where: { key },
+      update: { value: String(value) },
+      create: { key, value: String(value) },
+    });
+
+    const io = req.app.get('io');
+    if (io) io.emit('siteconfig_updated', { key, value: updated.value });
+
+    return res.json({ success: true, message: `Konten "${key}" berhasil diperbarui!`, config: updated });
+  } catch (error) {
+    console.error('Error update siteconfig:', error);
+    return res.status(500).json({ success: false, message: 'Gagal memperbarui konten.' });
+  }
+});
+
+// Update banyak siteconfig sekaligus
+router.post('/siteconfig/bulk', async (req, res) => {
+  try {
+    const { configs } = req.body; // { key: value, key2: value2 }
+    if (!configs || typeof configs !== 'object') {
+      return res.status(400).json({ success: false, message: 'Format data configs tidak valid.' });
+    }
+
+    const updates = await Promise.all(
+      Object.entries(configs).map(([key, value]) =>
+        prisma.siteConfig.upsert({
+          where: { key },
+          update: { value: String(value) },
+          create: { key, value: String(value) },
+        })
+      )
+    );
+
+    const io = req.app.get('io');
+    if (io) io.emit('siteconfig_bulk_updated', { configs });
+
+    return res.json({ success: true, message: 'Semua konten berhasil diperbarui!', count: updates.length });
+  } catch (error) {
+    console.error('Error bulk update siteconfig:', error);
+    return res.status(500).json({ success: false, message: 'Gagal memperbarui konten.' });
+  }
+});
+
+// Update foto profil mahasiswa (admin bisa edit juga)
+router.put('/mahasiswa/:id/foto', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { fotoProfil } = req.body; // base64 string
+
+    const updated = await prisma.mahasiswa.update({
+      where: { id },
+      data: { fotoProfil: fotoProfil || null },
+    });
+
+    const io = req.app.get('io');
+    if (io) io.emit('whitelist_updated', { action: 'UPDATED', mahasiswa: { id: updated.id, nim: updated.nim, fotoProfil: updated.fotoProfil } });
+
+    return res.json({ success: true, message: 'Foto profil berhasil diperbarui!' });
+  } catch (error) {
+    console.error('Error update foto profil:', error);
+    return res.status(500).json({ success: false, message: 'Gagal memperbarui foto profil.' });
+  }
+});
+
 module.exports = router;
+

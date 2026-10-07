@@ -41,14 +41,20 @@
     <!-- Student Profile Header Card -->
     <div class="profile-card">
       <div class="profile-main">
-        <div class="profile-avatar" id="avatarInitial">
-          M
+        <div style="position: relative; display: inline-block;">
+          <div class="profile-avatar" id="avatarInitial" onclick="triggerPhotoUpload()" title="Klik untuk mengganti foto profil" style="cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+            M
+          </div>
+          <div class="avatar-upload-overlay" onclick="triggerPhotoUpload()" title="Ganti Foto Profil">
+            <i class="fa-solid fa-camera" style="font-size: 0.75rem;"></i>
+          </div>
+          <input type="file" id="avatarFileInput" accept="image/*" style="display: none;" onchange="handlePhotoSelected(event)">
         </div>
         <div class="profile-details">
           <h2 id="studentFullName">Memuat Data Mahasiswa...</h2>
           <div class="profile-chips">
             <span class="chip chip-nim" id="chipNim"><i class="fa-solid fa-id-card"></i> NIM: -</span>
-            <span class="chip chip-prodi" id="chipProdi"><i class="fa-solid fa-book-open"></i> Teknik Informatika</span>
+            <span class="chip chip-prodi" id="chipProdi"><i class="fa-solid fa-book-open"></i> Psikologi</span>
             <span class="chip chip-angkatan" id="chipAngkatan"><i class="fa-solid fa-calendar"></i> Angkatan: -</span>
           </div>
         </div>
@@ -69,6 +75,19 @@
 
     <!-- Alert Real-Time Notification -->
     <div id="realtimeNotification" class="alert-box" style="display: none; margin-bottom: 1.5rem;"></div>
+
+    <!-- Jadwal Ujian Card -->
+    <div class="jadwal-mhs-card" id="mhsJadwalCard" style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-color); padding: 1.25rem 1.75rem; margin-bottom: 1.75rem; box-shadow: var(--shadow-sm);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--primary-navy); display: flex; align-items: center; gap: 0.4rem;">
+          <i class="fa-regular fa-calendar-check" style="color: var(--primary-blue);"></i> Informasi Jadwal Ujian Anda
+        </h4>
+        <span id="mhsJadwalBadge" style="display: none;"></span>
+      </div>
+      <div id="mhsJadwalContent" style="font-size: 0.85rem; color: var(--text-muted);">
+        <i class="fa-solid fa-spinner fa-spin"></i> Memeriksa agenda jadwal ujian...
+      </div>
+    </div>
 
     <!-- Progress Tracker Card -->
     <div class="progress-tracker-card" id="progressTrackerCard" style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-color); padding: 1.25rem 1.75rem; margin-bottom: 1.75rem; box-shadow: var(--shadow-sm);">

@@ -18,6 +18,8 @@ const STATUS_META = {
 document.addEventListener('DOMContentLoaded', () => {
   initSocket();
   loadStudents();
+  loadJadwalAdmin(false);
+  loadSiteConfigAdmin();
 });
 
 // Setup Socket.io
@@ -55,6 +57,20 @@ function initSocket() {
     // Real-Time Listener: Saat mahasiswa baru ditambahkan / diedit / dihapus
     socket.on('whitelist_updated', () => {
       loadStudents(false);
+      populateJadwalMhsDropdown();
+    });
+
+    // Real-Time Listener: Saat jadwal ujian diperbarui
+    socket.on('jadwal_updated', () => {
+      loadJadwalAdmin(false);
+    });
+
+    // Real-Time Listener: Saat konten situs diubah
+    socket.on('siteconfig_updated', () => {
+      loadSiteConfigAdmin();
+    });
+    socket.on('siteconfig_bulk_updated', () => {
+      loadSiteConfigAdmin();
     });
 
     // Real-Time Listener: Saat struktur portal / syarat diubah oleh admin
@@ -1316,4 +1332,474 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
+
+// ══════════════════════════════════════════════════════════════
+// ADMIN TAB SWITCHER
+// ══════════════════════════════════════════════════════════════
+function switchAdminTab(tabName) {
+  const btnStudents = document.getElementById('tabBtnStudents');
+  const btnJadwal = document.getElementById('tabBtnJadwal');
+  const btnSiteConfig = document.getElementById('tabBtnSiteConfig');
+
+  const viewStudents = document.getElementById('tabViewStudents');
+  const viewJadwal = document.getElementById('tabViewJadwal');
+  const viewSiteConfig = document.getElementById('tabViewSiteConfig');
+
+  if (btnStudents) btnStudents.classList.remove('active');
+  if (btnJadwal) btnJadwal.classList.remove('active');
+  if (btnSiteConfig) btnSiteConfig.classList.remove('active');
+
+  if (viewStudents) viewStudents.style.display = 'none';
+  if (viewJadwal) viewJadwal.style.display = 'none';
+  if (viewSiteConfig) viewSiteConfig.style.display = 'none';
+
+  if (tabName === 'students') {
+    if (btnStudents) btnStudents.classList.add('active');
+    if (viewStudents) viewStudents.style.display = 'block';
+  } else if (tabName === 'jadwal') {
+    if (btnJadwal) btnJadwal.classList.add('active');
+    if (viewJadwal) viewJadwal.style.display = 'block';
+    loadJadwalAdmin();
+  } else if (tabName === 'siteconfig') {
+    if (btnSiteConfig) btnSiteConfig.classList.add('active');
+    if (viewSiteConfig) viewSiteConfig.style.display = 'block';
+    loadSiteConfigAdmin();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// MANAJEMEN JADWAL UJIAN
+// ══════════════════════════════════════════════════════════════
+let allJadwalList = [];
+
+// Populate Dropdown Mahasiswa di Modal Jadwal
+function populateJadwalMhsDropdown(selectedId = null) {
+  const select = document.getElementById('jadwalMhsSelect');
+  if (!select) return;
+
+  select.innerHTML = '<option value="">-- Pilih Mahasiswa Bimbingan --</option>';
+  allStudents.forEach((m) => {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = `${m.nama} (${m.nim}) - ${m.prodi || 'Psikologi'}`;
+    if (selectedId && Number(selectedId) === Number(m.id)) {
+      opt.selected = true;
+    }
+    select.appendChild(opt);
+  });
+}
+
+// Load Jadwal dari Server
+async function loadJadwalAdmin(showLoading = true) {
+  const tbody = document.getElementById('jadwalTableBody');
+  if (showLoading && tbody) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+          <i class="fa-solid fa-spinner fa-spin"></i> Memuat jadwal ujian...
+        </td>
+      </tr>
+    `;
+  }
+
+  try {
+    const res = await fetch('/api/admin/jadwal', {
+      headers: getAuthHeaders(),
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      window.location.href = '/login.html';
+      return;
+    }
+
+    const data = await res.json();
+    if (data.success) {
+      allJadwalList = data.jadwal || [];
+      renderJadwalTable(allJadwalList);
+      populateJadwalMhsDropdown();
+    }
+  } catch (err) {
+    console.error('Error load jadwal admin:', err);
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #ef4444; padding: 2rem;">Gagal memuat data jadwal ujian.</td></tr>`;
+    }
+  }
+}
+
+// Render Tabel Jadwal
+function renderJadwalTable(jadwalList) {
+  const tbody = document.getElementById('jadwalTableBody');
+  if (!tbody) return;
+
+  if (jadwalList.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+          <i class="fa-regular fa-calendar-xmark fa-2x" style="margin-bottom: 0.5rem; display: block; opacity: 0.4;"></i>
+          Belum ada jadwal ujian yang ditambahkan. Klik tombol "Tambah Jadwal Ujian" di atas untuk membuat jadwal baru.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = jadwalList.map((j, idx) => {
+    const tgl = new Date(j.tanggal).toLocaleDateString('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+
+    let statusBadgeCls = 'badge-PENDING';
+    if (j.status === 'SELESAI') statusBadgeCls = 'badge-APPROVED';
+    if (j.status === 'BATAL') statusBadgeCls = 'badge-REVISION';
+
+    return `
+      <tr>
+        <td style="text-align: center; font-weight: 600; color: #64748b;">${idx + 1}</td>
+        <td>
+          <div style="font-weight: 700; color: var(--primary-navy); font-size: 0.92rem;">
+            ${escapeHtml(j.mahasiswa?.nama || '-')}
+          </div>
+          <div style="font-size: 0.78rem; color: #64748b; font-family: monospace;">
+            NIM: ${escapeHtml(j.mahasiswa?.nim || '-')} • ${escapeHtml(j.mahasiswa?.prodi || 'Psikologi')}
+          </div>
+        </td>
+        <td>
+          <span class="badge-exam badge-exam-${j.jenis}">${j.jenis}</span>
+        </td>
+        <td>
+          <div style="font-weight: 600; color: var(--primary-navy); font-size: 0.85rem;">${tgl}</div>
+          <div style="font-size: 0.78rem; color: #64748b;"><i class="fa-regular fa-clock"></i> ${escapeHtml(j.jam)}</div>
+        </td>
+        <td>
+          <div style="font-size: 0.85rem; font-weight: 500; color: var(--text-main);"><i class="fa-solid fa-door-open" style="color: var(--primary-blue);"></i> ${escapeHtml(j.ruangan)}</div>
+        </td>
+        <td>
+          <span class="badge-status ${statusBadgeCls}">${j.status}</span>
+        </td>
+        <td>
+          <div style="font-size: 0.8rem; color: var(--text-muted); max-width: 220px;">
+            ${j.catatan ? escapeHtml(j.catatan) : '<em style="color:#cbd5e1;">-</em>'}
+          </div>
+        </td>
+        <td style="text-align: right;">
+          <div style="display: flex; gap: 0.4rem; justify-content: flex-end;">
+            <button class="btn-action-icon" title="Edit Jadwal" onclick="openEditJadwalModal(${j.id})">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+            <button class="btn-action-icon btn-action-delete" title="Hapus Jadwal" onclick="handleDeleteJadwal(${j.id}, '${escapeHtml(j.mahasiswa?.nama || '')}')">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// Buka Modal Tambah Jadwal
+function openAddJadwalModal() {
+  const form = document.getElementById('formJadwal');
+  if (form) form.reset();
+
+  const title = document.getElementById('jadwalModalTitle');
+  if (title) title.innerHTML = `<i class="fa-regular fa-calendar-plus"></i> Tambah Jadwal Ujian`;
+
+  const editId = document.getElementById('jadwalEditId');
+  if (editId) editId.value = '';
+
+  const selectMhs = document.getElementById('jadwalMhsSelect');
+  if (selectMhs) selectMhs.disabled = false;
+
+  populateJadwalMhsDropdown();
+
+  const modal = document.getElementById('jadwalModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+// Buka Modal Edit Jadwal
+function openEditJadwalModal(id) {
+  const j = allJadwalList.find((item) => item.id === id);
+  if (!j) return;
+
+  const title = document.getElementById('jadwalModalTitle');
+  if (title) title.innerHTML = `<i class="fa-solid fa-calendar-check"></i> Edit Jadwal Ujian`;
+
+  const editId = document.getElementById('jadwalEditId');
+  if (editId) editId.value = j.id;
+
+  populateJadwalMhsDropdown(j.mahasiswaId);
+
+  const selectMhs = document.getElementById('jadwalMhsSelect');
+  if (selectMhs) selectMhs.disabled = true;
+
+  const selectJenis = document.getElementById('jadwalJenisSelect');
+  if (selectJenis) selectJenis.value = j.jenis;
+
+  const selectStatus = document.getElementById('jadwalStatusSelect');
+  if (selectStatus) selectStatus.value = j.status;
+
+  const inputTanggal = document.getElementById('jadwalTanggalInput');
+  if (inputTanggal) {
+    const d = new Date(j.tanggal);
+    inputTanggal.value = d.toISOString().split('T')[0];
+  }
+
+  const inputJam = document.getElementById('jadwalJamInput');
+  if (inputJam) inputJam.value = j.jam;
+
+  const inputRuangan = document.getElementById('jadwalRuanganInput');
+  if (inputRuangan) inputRuangan.value = j.ruangan;
+
+  const inputCatatan = document.getElementById('jadwalCatatanInput');
+  if (inputCatatan) inputCatatan.value = j.catatan || '';
+
+  const modal = document.getElementById('jadwalModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeJadwalModal() {
+  const modal = document.getElementById('jadwalModal');
+  if (modal) modal.style.display = 'none';
+}
+
+// Simpan (Tambah / Update) Jadwal Ujian
+async function handleSaveJadwal(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  const editId = document.getElementById('jadwalEditId')?.value;
+  const mahasiswaId = document.getElementById('jadwalMhsSelect')?.value;
+  const jenis = document.getElementById('jadwalJenisSelect')?.value;
+  const status = document.getElementById('jadwalStatusSelect')?.value;
+  const tanggal = document.getElementById('jadwalTanggalInput')?.value;
+  const jam = document.getElementById('jadwalJamInput')?.value;
+  const ruangan = document.getElementById('jadwalRuanganInput')?.value;
+  const catatan = document.getElementById('jadwalCatatanInput')?.value;
+
+  const btn = document.getElementById('btnSubmitJadwal');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`;
+  }
+
+  try {
+    let url = '/api/admin/jadwal';
+    let method = 'POST';
+
+    if (editId) {
+      url = `/api/admin/jadwal/${editId}`;
+      method = 'PUT';
+    }
+
+    const res = await fetch(url, {
+      method,
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        mahasiswaId,
+        jenis,
+        status,
+        tanggal,
+        jam,
+        ruangan,
+        catatan,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menyimpan',
+        text: data.message || 'Terjadi kesalahan.',
+        confirmButtonColor: '#0d2346',
+      });
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-check"></i> <span>Simpan Jadwal Ujian</span>`;
+      }
+      return;
+    }
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Berhasil!',
+      text: data.message || 'Jadwal ujian berhasil disimpan dan disinkronkan real-time.',
+      timer: 2000,
+      showConfirmButton: false,
+    });
+
+    closeJadwalModal();
+    loadJadwalAdmin(false);
+
+  } catch (err) {
+    console.error(err);
+    Swal.fire({
+      icon: 'error',
+      title: 'Koneksi Gagal',
+      text: 'Tidak dapat terhubung ke server.',
+      confirmButtonColor: '#0d2346',
+    });
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-check"></i> <span>Simpan Jadwal Ujian</span>`;
+    }
+  }
+}
+
+// Hapus Jadwal Ujian
+async function handleDeleteJadwal(id, namaMhs) {
+  const result = await Swal.fire({
+    title: 'Hapus Jadwal Ujian?',
+    text: `Jadwal ujian untuk mahasiswa "${namaMhs}" akan dihapus dari sistem.`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#dc2626',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: 'Ya, Hapus',
+    cancelButtonText: 'Batal',
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    const res = await fetch(`/api/admin/jadwal/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menghapus',
+        text: data.message || 'Gagal menghapus jadwal.',
+        confirmButtonColor: '#0d2346',
+      });
+      return;
+    }
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Terhapus!',
+      text: data.message || 'Jadwal ujian berhasil dihapus.',
+      timer: 1800,
+      showConfirmButton: false,
+    });
+
+    loadJadwalAdmin(false);
+  } catch (err) {
+    console.error(err);
+    Swal.fire({
+      icon: 'error',
+      title: 'Koneksi Gagal',
+      text: 'Tidak dapat terhubung ke server.',
+      confirmButtonColor: '#0d2346',
+    });
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// MANAJEMEN SITECONFIG (EDIT NARASI/KONTEN WEB)
+// ══════════════════════════════════════════════════════════════
+
+// Load SiteConfig ke Form Admin
+async function loadSiteConfigAdmin() {
+  try {
+    const res = await fetch('/api/admin/siteconfig', {
+      headers: getAuthHeaders(),
+    });
+
+    if (res.status === 401 || res.status === 403) return;
+
+    const data = await res.json();
+    if (data.success && data.config) {
+      const cfg = data.config;
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el && val !== undefined) el.value = val;
+      };
+
+      setVal('cfg_beranda_header_chip', cfg.beranda_header_chip || 'Tahun Akademik 2024/2025 Genap');
+      setVal('cfg_beranda_title', cfg.beranda_title || 'Portal Monitoring Skripsi & Akademik Bimbingan');
+      setVal('cfg_beranda_subtitle', cfg.beranda_subtitle || 'Sistem pemantauan berkas seminar proposal, seminar hasil, dan ujian skripsi secara transparan, terintegrasi, dan real-time.');
+      setVal('cfg_beranda_footer', cfg.beranda_footer || 'Sistem Informasi Manajemen Skripsi & Verifikasi Berkas Terpadu • Program Studi Psikologi');
+      setVal('cfg_login_judul', cfg.login_judul || 'Sistem Pengumpulan & Verifikasi Berkas Skripsi');
+      setVal('cfg_login_deskripsi', cfg.login_deskripsi || 'Portal akademik terpadu untuk pengumpulan dan verifikasi berkas Seminar Proposal, Seminar Hasil, dan Ujian Meja / Skripsi.');
+      setVal('cfg_login_petunjuk_admin', cfg.login_petunjuk_admin || 'Masukkan kata sandi admin12345 (atau username admin) untuk masuk ke Dashboard Monitoring.');
+      setVal('cfg_login_petunjuk_mhs', cfg.login_petunjuk_mhs || 'Masukkan NIM Anda yang sudah didaftarkan oleh dosen di dashboard admin.');
+      setVal('cfg_helpdesk_info', cfg.helpdesk_info || 'Butuh aktivasi NIM? Hubungi Helpdesk Akademik Gedung Rektorat Lt. 1.');
+    }
+  } catch (err) {
+    console.error('Error load siteconfig admin:', err);
+  }
+}
+
+// Simpan Semua Narasi SiteConfig
+async function handleSaveSiteConfig(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  const btn = document.getElementById('btnSaveConfig');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan Narasi...`;
+  }
+
+  const configs = {
+    beranda_header_chip: document.getElementById('cfg_beranda_header_chip')?.value.trim() || '',
+    beranda_title: document.getElementById('cfg_beranda_title')?.value.trim() || '',
+    beranda_subtitle: document.getElementById('cfg_beranda_subtitle')?.value.trim() || '',
+    beranda_footer: document.getElementById('cfg_beranda_footer')?.value.trim() || '',
+    login_judul: document.getElementById('cfg_login_judul')?.value.trim() || '',
+    login_deskripsi: document.getElementById('cfg_login_deskripsi')?.value.trim() || '',
+    login_petunjuk_admin: document.getElementById('cfg_login_petunjuk_admin')?.value.trim() || '',
+    login_petunjuk_mhs: document.getElementById('cfg_login_petunjuk_mhs')?.value.trim() || '',
+    helpdesk_info: document.getElementById('cfg_helpdesk_info')?.value.trim() || '',
+  };
+
+  try {
+    const res = await fetch('/api/admin/siteconfig/bulk', {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ configs }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menyimpan',
+        text: data.message || 'Terjadi kesalahan.',
+        confirmButtonColor: '#0d2346',
+      });
+      return;
+    }
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Narasi Tersimpan!',
+      text: 'Semua teks dan narasi web telah diperbarui dan langsung tampil di beranda & login secara real-time!',
+      timer: 2000,
+      showConfirmButton: false,
+    });
+
+  } catch (err) {
+    console.error(err);
+    Swal.fire({
+      icon: 'error',
+      title: 'Koneksi Gagal',
+      text: 'Tidak dapat terhubung ke server.',
+      confirmButtonColor: '#0d2346',
+    });
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>Simpan Semua Pengaturan Narasi</span>`;
+    }
+  }
+}
+
 

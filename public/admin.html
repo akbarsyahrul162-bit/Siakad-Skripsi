@@ -71,73 +71,209 @@
       </div>
     </div>
 
-    <!-- Toolbar: Search, Filter, & Add Student Button -->
-    <div class="toolbar-card">
-      <div class="toolbar-filters">
-        <div class="search-box">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input 
-            type="text" 
-            id="searchStudentInput" 
-            placeholder="Cari berdasarkan Nama atau NIM mahasiswa..." 
-            oninput="handleSearchFilter()"
-          >
+    <!-- Admin Tab Navigation -->
+    <div class="admin-tab-nav">
+      <button class="admin-tab-btn active" id="tabBtnStudents" onclick="switchAdminTab('students')">
+        <i class="fa-solid fa-users"></i> Direktori & Berkas Mahasiswa
+      </button>
+      <button class="admin-tab-btn" id="tabBtnJadwal" onclick="switchAdminTab('jadwal')">
+        <i class="fa-regular fa-calendar-days"></i> Manajemen Jadwal Ujian
+      </button>
+      <button class="admin-tab-btn" id="tabBtnSiteConfig" onclick="switchAdminTab('siteconfig')">
+        <i class="fa-solid fa-pen-nib"></i> Edit Narasi & Konten Web
+      </button>
+    </div>
+
+    <!-- TAB 1: Direktori Mahasiswa & Berkas -->
+    <div id="tabViewStudents">
+      <!-- Toolbar: Search, Filter, & Add Student Button -->
+      <div class="toolbar-card">
+        <div class="toolbar-filters">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input 
+              type="text" 
+              id="searchStudentInput" 
+              placeholder="Cari berdasarkan Nama atau NIM mahasiswa..." 
+              oninput="handleSearchFilter()"
+            >
+          </div>
+
+          <select class="select-filter" id="filterAngkatan" onchange="handleSearchFilter()">
+            <option value="">Semua Angkatan</option>
+            <option value="2021">Angkatan 2021</option>
+            <option value="2020">Angkatan 2020</option>
+            <option value="2019">Angkatan 2019</option>
+          </select>
         </div>
 
-        <select class="select-filter" id="filterAngkatan" onchange="handleSearchFilter()">
-          <option value="">Semua Angkatan</option>
-          <option value="2021">Angkatan 2021</option>
-          <option value="2020">Angkatan 2020</option>
-          <option value="2019">Angkatan 2019</option>
-        </select>
+        <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+          <button class="btn-add-student" style="background: linear-gradient(135deg, #164e87 0%, #0d2346 100%);" onclick="openRequirementsModal()">
+            <i class="fa-solid fa-list-check"></i>
+            <span>Kelola Syarat Berkas Portal</span>
+          </button>
+          <button class="btn-add-student" onclick="openAddStudentModal()">
+            <i class="fa-solid fa-user-plus"></i>
+            <span>Tambah Mahasiswa ke Whitelist</span>
+          </button>
+        </div>
       </div>
 
-      <div style="display: flex; gap: 0.6rem;">
-        <button class="btn-add-student" style="background: linear-gradient(135deg, #164e87 0%, #0d2346 100%);" onclick="openRequirementsModal()">
-          <i class="fa-solid fa-list-check"></i>
-          <span>Kelola Syarat Berkas Portal</span>
-        </button>
-        <button class="btn-add-student" onclick="openAddStudentModal()">
-          <i class="fa-solid fa-user-plus"></i>
-          <span>Tambah Mahasiswa ke Whitelist</span>
-        </button>
+      <!-- Table Directory Card -->
+      <div class="table-card">
+        <div style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+          <h3 style="font-size: 1rem; color: var(--primary-navy); font-weight: 700;">
+            <i class="fa-solid fa-table-list" style="margin-right: 0.4rem; color: var(--primary-blue);"></i>
+            Daftar Mahasiswa Bimbingan & Status Berkas
+          </h3>
+          <span style="font-size: 0.78rem; color: var(--text-muted);" id="studentsCountLabel">
+            Menampilkan 0 mahasiswa
+          </span>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="academic-table">
+            <thead id="studentTableHead">
+              <tr>
+                <th style="width: 50px;">No</th>
+                <th>Nama & NIM</th>
+                <th>Angkatan / Prodi</th>
+                <th style="width: 250px;">Judul Skripsi</th>
+                <th>Portal 1 (Sempro)</th>
+                <th>Portal 2 (Semhas)</th>
+                <th>Portal 3 (Skripsi)</th>
+                <th style="text-align: right; width: 140px;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="studentTableBody">
+              <tr>
+                <td colspan="8" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                  <i class="fa-solid fa-spinner fa-spin"></i> Memuat direktori mahasiswa...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
-    <!-- Table Directory Card -->
-    <div class="table-card">
-      <div style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
-        <h3 style="font-size: 1rem; color: var(--primary-navy); font-weight: 700;">
-          <i class="fa-solid fa-table-list" style="margin-right: 0.4rem; color: var(--primary-blue);"></i>
-          Daftar Mahasiswa Bimbingan & Status Berkas
-        </h3>
-        <span style="font-size: 0.78rem; color: var(--text-muted);" id="studentsCountLabel">
-          Menampilkan 0 mahasiswa
-        </span>
+    <!-- TAB 2: Manajemen Jadwal Ujian -->
+    <div id="tabViewJadwal" style="display: none;">
+      <div class="toolbar-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--primary-navy);">
+              <i class="fa-regular fa-calendar-check" style="color: var(--primary-blue); margin-right: 0.4rem;"></i>
+              Daftar Jadwal Ujian Mahasiswa
+            </h3>
+            <span style="font-size: 0.78rem; color: var(--text-muted);">
+              Admin dapat menjadwalkan Sempro, Semhas, dan Sidang Skripsi yang langsung tayang di beranda publik.
+            </span>
+          </div>
+          <button class="btn-add-student" onclick="openAddJadwalModal()">
+            <i class="fa-solid fa-calendar-plus"></i>
+            <span>Tambah Jadwal Ujian</span>
+          </button>
+        </div>
       </div>
 
-      <div style="overflow-x: auto;">
-        <table class="academic-table">
-          <thead id="studentTableHead">
-            <tr>
-              <th style="width: 50px;">No</th>
-              <th>Nama & NIM</th>
-              <th>Angkatan / Prodi</th>
-              <th style="width: 250px;">Judul Skripsi</th>
-              <th>Portal 1 (Sempro)</th>
-              <th>Portal 2 (Semhas)</th>
-              <th>Portal 3 (Skripsi)</th>
-              <th style="text-align: right; width: 140px;">Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="studentTableBody">
-            <tr>
-              <td colspan="8" style="text-align: center; padding: 3rem; color: var(--text-muted);">
-                <i class="fa-solid fa-spinner fa-spin"></i> Memuat direktori mahasiswa...
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="table-card">
+        <div style="overflow-x: auto;">
+          <table class="academic-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">No</th>
+                <th>Mahasiswa (Nama & NIM)</th>
+                <th>Jenis Ujian</th>
+                <th>Tanggal & Jam</th>
+                <th>Ruangan</th>
+                <th>Status</th>
+                <th>Catatan</th>
+                <th style="text-align: right; width: 140px;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="jadwalTableBody">
+              <tr>
+                <td colspan="8" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                  <i class="fa-solid fa-spinner fa-spin"></i> Memuat jadwal ujian...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: Pengaturan Narasi & Teks Situs -->
+    <div id="tabViewSiteConfig" style="display: none;">
+      <div class="table-card" style="padding: 1.5rem;">
+        <div style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.85rem;">
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--primary-navy);">
+            <i class="fa-solid fa-pen-nib" style="color: var(--primary-blue); margin-right: 0.4rem;"></i>
+            Pengaturan Narasi, Header & Teks Konten Situs
+          </h3>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem;">
+            Ubah teks apapun yang tampil pada halaman Beranda publik atau halaman Login. Perubahan akan tersimpan di database dan sinkron secara real-time.
+          </p>
+        </div>
+
+        <form id="formSiteConfig" onsubmit="handleSaveSiteConfig(event)">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+            
+            <div class="form-group">
+              <label for="cfg_beranda_header_chip">Badge Header Beranda (Tahun Akademik)</label>
+              <input type="text" id="cfg_beranda_header_chip" class="input-portal-single" placeholder="Contoh: Tahun Akademik 2024/2025 Genap">
+            </div>
+
+            <div class="form-group">
+              <label for="cfg_beranda_title">Judul Utama Beranda</label>
+              <input type="text" id="cfg_beranda_title" class="input-portal-single" placeholder="Contoh: Portal Monitoring Skripsi & Akademik Bimbingan">
+            </div>
+
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label for="cfg_beranda_subtitle">Subjudul / Deskripsi Utama Beranda</label>
+              <textarea id="cfg_beranda_subtitle" class="verification-note-input" style="min-height: 70px;"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="cfg_login_judul">Judul Banner Halaman Login</label>
+              <input type="text" id="cfg_login_judul" class="input-portal-single">
+            </div>
+
+            <div class="form-group">
+              <label for="cfg_beranda_footer">Teks Footer Website</label>
+              <input type="text" id="cfg_beranda_footer" class="input-portal-single">
+            </div>
+
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label for="cfg_login_deskripsi">Deskripsi Banner Halaman Login</label>
+              <textarea id="cfg_login_deskripsi" class="verification-note-input" style="min-height: 65px;"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="cfg_login_petunjuk_admin">Petunjuk Autentikasi Dosen / Admin</label>
+              <textarea id="cfg_login_petunjuk_admin" class="verification-note-input" style="min-height: 60px;"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="cfg_login_petunjuk_mhs">Petunjuk Autentikasi Mahasiswa</label>
+              <textarea id="cfg_login_petunjuk_mhs" class="verification-note-input" style="min-height: 60px;"></textarea>
+            </div>
+
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label for="cfg_helpdesk_info">Informasi Kontak Helpdesk</label>
+              <input type="text" id="cfg_helpdesk_info" class="input-portal-single">
+            </div>
+
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+            <button type="submit" class="btn-primary" style="width: auto; padding: 0.75rem 2rem;" id="btnSaveConfig">
+              <i class="fa-solid fa-floppy-disk"></i>
+              <span>Simpan Semua Pengaturan Narasi</span>
+            </button>
+          </div>
+        </form>
       </div>
     </div>
 
@@ -426,6 +562,80 @@
 
         </div>
 
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL JADWAL: Tambah / Edit Jadwal Ujian -->
+  <div class="modal-overlay" id="jadwalModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 id="jadwalModalTitle"><i class="fa-regular fa-calendar-plus"></i> Atur Jadwal Ujian Mahasiswa</h3>
+        <button class="btn-close-modal" onclick="closeJadwalModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formJadwal" onsubmit="handleSaveJadwal(event)">
+          <input type="hidden" id="jadwalEditId">
+
+          <div class="form-group">
+            <label for="jadwalMhsSelect">Pilih Mahasiswa *</label>
+            <select id="jadwalMhsSelect" class="input-portal-single" required style="padding-left: 1rem;">
+              <option value="">-- Pilih Mahasiswa Bimbingan --</option>
+            </select>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label for="jadwalJenisSelect">Tahapan / Jenis Ujian *</label>
+              <select id="jadwalJenisSelect" class="input-portal-single" required style="padding-left: 1rem;">
+                <option value="SEMPRO">Seminar Proposal (Sempro)</option>
+                <option value="SEMHAS">Seminar Hasil (Semhas)</option>
+                <option value="SIDANG">Sidang Skripsi / Ujian Tutup</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="jadwalStatusSelect">Status Jadwal *</label>
+              <select id="jadwalStatusSelect" class="input-portal-single" required style="padding-left: 1rem;">
+                <option value="TERJADWAL">TERJADWAL</option>
+                <option value="SELESAI">SELESAI</option>
+                <option value="BATAL">BATAL</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label for="jadwalTanggalInput">Tanggal Pelaksanaan *</label>
+              <input type="date" id="jadwalTanggalInput" class="input-portal-single" required style="padding-left: 1rem;">
+            </div>
+
+            <div class="form-group">
+              <label for="jadwalJamInput">Jam Pelaksanaan *</label>
+              <input type="text" id="jadwalJamInput" class="input-portal-single" placeholder="Contoh: 09:00 - 11:00 WITA" required style="padding-left: 1rem;">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="jadwalRuanganInput">Ruangan / Tempat Ujian *</label>
+            <input type="text" id="jadwalRuanganInput" class="input-portal-single" placeholder="Contoh: Ruang Sidang Psikologi Gedung B Lt. 2" required style="padding-left: 1rem;">
+          </div>
+
+          <div class="form-group">
+            <label for="jadwalCatatanInput">Catatan Khusus (Opsional)</label>
+            <textarea id="jadwalCatatanInput" class="verification-note-input" placeholder="Contoh: Membawa 3 eksemplar naskah dan slide presentasi max 10 menit..."></textarea>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+            <button type="button" class="btn-logout" style="background:#e2e8f0; color:#475569; border:none;" onclick="closeJadwalModal()">
+              Batal
+            </button>
+            <button type="submit" class="btn-primary" style="width: auto; padding: 0.65rem 1.75rem;" id="btnSubmitJadwal">
+              <i class="fa-solid fa-check"></i>
+              <span>Simpan Jadwal Ujian</span>
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>

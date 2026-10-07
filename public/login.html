@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Akademik & Skripsi - Gate Login</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    .input-portal-single {
+      width: 100%;
+      padding: 0.85rem 1rem 0.85rem 2.8rem;
+      border: 2px solid var(--border-color);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.2s ease;
+      background: #f8fafc;
+      font-weight: 500;
+    }
+    .input-portal-single:focus {
+      background: #ffffff;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+    }
+    .btn-portal-submit {
+      width: 100%;
+      padding: 0.95rem;
+      background: linear-gradient(135deg, #164e87 0%, #0d2346 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(13, 35, 70, 0.25);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      margin-top: 1.25rem;
+    }
+    .btn-portal-submit:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(13, 35, 70, 0.35);
+    }
+    .btn-portal-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .demo-chip-btn {
+      font-size: 0.75rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: white;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .demo-chip-btn:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Academic Navigation -->
+  <header class="academic-navbar">
+    <div class="navbar-container">
+      <a href="/" class="brand-section" style="text-decoration: none;">
+        <div class="university-crest">
+          <i class="fa-solid fa-graduation-cap"></i>
+        </div>
+        <div class="brand-title">
+          <span class="main-name">SIAKAD SKRIPSI</span>
+          <span class="sub-name">Portal Verifikasi Berkas Akademik Terpadu</span>
+        </div>
+      </a>
+      <div class="nav-user-meta">
+        <a href="/" style="color: #cbd5e1; text-decoration: none; font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;">
+          <i class="fa-solid fa-arrow-left"></i> Kembali ke Beranda
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Login Gateway Container -->
+  <main class="login-page-wrapper">
+    <div class="login-gateway-card">
+      
+      <!-- Left Side: Campus Identity & Announcement -->
+      <div class="login-banner-side">
+        <div class="banner-head">
+          <span class="academic-chip" id="loginChip">
+            <i class="fa-solid fa-building-columns"></i> Tahun Akademik 2024/2025 Genap
+          </span>
+          <h1 id="loginJudul">Sistem Pengumpulan & Verifikasi Berkas Skripsi</h1>
+          <p id="loginDeskripsi">
+            Portal akademik terpadu untuk pengumpulan dan verifikasi berkas Seminar Proposal, Seminar Hasil, dan Ujian Meja / Skripsi.
+          </p>
+
+          <div class="academic-announcements">
+            <div class="announcement-title">
+              <i class="fa-solid fa-circle-info"></i> Petunjuk Autentikasi
+            </div>
+            <div class="announcement-text">
+              • <strong>Dosen / Admin:</strong> <span id="loginPetunjukDosen">Masukkan kata sandi <code>admin12345</code> (atau username <code>admin</code>) untuk masuk ke Dashboard Monitoring.</span><br><br>
+              • <strong>Mahasiswa:</strong> <span id="loginPetunjukMhs">Masukkan NIM Anda yang sudah didaftarkan oleh dosen di dashboard admin.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="banner-foot" id="loginFooter">
+          © 2026 Bagian Akademik & Fakultas • Sistem Informasi Akademik
+        </div>
+      </div>
+
+      <!-- Right Side: 1 Single Portal Login Form -->
+      <div class="login-form-side">
+        <div class="form-header">
+          <h2>Masuk ke Portal</h2>
+          <p>Gunakan NIM Anda atau Kredensial Dosen / Admin</p>
+        </div>
+
+        <!-- Alert Notification Box -->
+        <div id="loginAlert" class="alert-box"></div>
+
+        <!-- Form 1 Pintu Masuk -->
+        <form id="formUnifiedLogin" action="/api/auth/login-unified" method="POST" onsubmit="handleUnifiedLogin(event)">
+          
+          <!-- 1. Kolom Username -->
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label for="inputUsername" style="font-size: 0.85rem; font-weight: 700; color: var(--primary-navy, #0d2346); margin-bottom: 0.4rem; display: block;">
+              Username
+            </label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-user field-icon" style="font-size: 1rem; color: #64748b;"></i>
+              <input 
+                type="text" 
+                id="inputUsername" 
+                name="username"
+                class="input-portal-single"
+                placeholder="Username akun" 
+                autocomplete="username"
+              >
+            </div>
+          </div>
+
+          <!-- 2. Kolom NIM Mahasiswa -->
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label for="inputNim" style="font-size: 0.85rem; font-weight: 700; color: var(--primary-navy, #0d2346); margin-bottom: 0.4rem; display: block;">
+              Nomor Induk Mahasiswa (NIM)
+            </label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-id-card field-icon" style="font-size: 1rem; color: #64748b;"></i>
+              <input 
+                type="text" 
+                id="inputNim" 
+                name="nim"
+                class="input-portal-single"
+                placeholder="NIM Mahasiswa" 
+                autocomplete="off"
+              >
+            </div>
+            <small style="color: #64748b; font-size: 0.72rem; margin-top: 0.25rem; display: block;">
+              *Khusus Dosen / Admin: kolom NIM dapat dikosongkan.
+            </small>
+          </div>
+
+          <!-- 3. Kolom Kata Sandi -->
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label for="inputPassword" style="font-size: 0.85rem; font-weight: 700; color: var(--primary-navy, #0d2346); margin-bottom: 0.4rem; display: block;">
+              Kata Sandi (Password)
+            </label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-lock field-icon" style="font-size: 1rem; color: #64748b;"></i>
+              <input 
+                type="password" 
+                id="inputPassword" 
+                name="password"
+                class="input-portal-single"
+                placeholder="Kata Sandi" 
+                autocomplete="current-password"
+              >
+            </div>
+          </div>
+
+          <button type="submit" class="btn-portal-submit" id="btnSubmitUnified">
+            <span>Masuk ke Portal</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </form>
+
+        <!-- Helpdesk Footer -->
+        <div class="helpdesk-info" id="loginHelpdesk" style="margin-top: 1.5rem; font-size: 0.8rem; color: #64748b; text-align: center;">
+          Butuh aktivasi NIM? Hubungi <strong>Helpdesk Akademik</strong> Gedung Rektorat Lt. 1.
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="academic-footer" id="loginFooterBottom">
+    Sistem Informasi Manajemen Skripsi & Verifikasi Berkas Terpadu • Universitas Bosowa Style
+  </footer>
+
+  <!-- Script Proses Masuk Inline -->
+  <script>
+    async function loadLoginConfig() {
+      try {
+        const res = await fetch('/api/publik/siteconfig');
+        const data = await res.json();
+        if (data.success && data.config) {
+          const cfg = data.config;
+          if (cfg.login_judul) {
+            const el = document.getElementById('loginJudul');
+            if (el) el.textContent = cfg.login_judul;
+          }
+          if (cfg.login_deskripsi) {
+            const el = document.getElementById('loginDeskripsi');
+            if (el) el.textContent = cfg.login_deskripsi;
+          }
+          if (cfg.login_petunjuk_admin) {
+            const el = document.getElementById('loginPetunjukDosen');
+            if (el) el.textContent = cfg.login_petunjuk_admin;
+          }
+          if (cfg.login_petunjuk_mhs) {
+            const el = document.getElementById('loginPetunjukMhs');
+            if (el) el.textContent = cfg.login_petunjuk_mhs;
+          }
+          if (cfg.helpdesk_info) {
+            const el = document.getElementById('loginHelpdesk');
+            if (el) el.textContent = cfg.helpdesk_info;
+          }
+          if (cfg.beranda_header_chip) {
+            const el = document.getElementById('loginChip');
+            if (el) el.innerHTML = `<i class="fa-solid fa-building-columns"></i> ${cfg.beranda_header_chip}`;
+          }
+          if (cfg.beranda_footer) {
+            const el = document.getElementById('loginFooterBottom');
+            if (el) el.textContent = cfg.beranda_footer;
+          }
+        }
+      } catch (err) {
+        console.error('Gagal load login config:', err);
+      }
+    }
+    document.addEventListener('DOMContentLoaded', loadLoginConfig);
+
+    function showAlert(message, type = 'danger') {
+      const alertBox = document.getElementById('loginAlert');
+      if (!alertBox) return;
+      alertBox.className = `alert-box alert-${type}`;
+      alertBox.innerHTML = `
+        <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+          <i class="fa-solid fa-${type === 'danger' ? 'triangle-exclamation' : 'circle-check'}" style="margin-top: 2px;"></i>
+          <div>${message}</div>
+        </div>
+      `;
+      alertBox.style.display = 'block';
+    }
+
+    async function handleUnifiedLogin(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      
+      const userEl = document.getElementById('inputUsername');
+      const nimEl = document.getElementById('inputNim');
+      const passEl = document.getElementById('inputPassword');
+
+      const username = userEl ? userEl.value.trim() : '';
+      const nim = nimEl ? nimEl.value.trim() : '';
+      const password = passEl ? passEl.value.trim() : '';
+
+      const btn = document.getElementById('btnSubmitUnified');
+      const alertBox = document.getElementById('loginAlert');
+
+      if (alertBox) alertBox.style.display = 'none';
+
+      // Validasi input
+      if (!username && !nim && !password) {
+        showAlert('Silakan masukkan kredensial Anda (NIM Mahasiswa atau Kata Sandi Dosen).', 'warning');
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memverifikasi Akses...`;
+      }
+
+      try {
+        const res = await fetch('/api/auth/login-unified', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            username: username || nim, 
+            nim: nim, 
+            password: password 
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showAlert(data.message || 'Akses ditolak.', 'danger');
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<span>Masuk ke Portal</span> <i class="fa-solid fa-arrow-right"></i>`;
+          }
+          return;
+        }
+
+        // Simpan token ke localStorage jika ada
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+        }
+
+        // Langsung arahkan halaman ke dashboard
+        const targetUrl = data.redirect || (data.role === 'DOSEN' ? '/admin.html' : '/mahasiswa.html');
+        window.location.assign(targetUrl);
+
+      } catch (err) {
+        console.error(err);
+        showAlert('Terjadi kesalahan koneksi server.', 'danger');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<span>Masuk ke Portal</span> <i class="fa-solid fa-arrow-right"></i>`;
+        }
+      }
+    }
+  </script>
+</body>
+</html>

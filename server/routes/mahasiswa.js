@@ -15,10 +15,15 @@ router.get('/portal-data', async (req, res) => {
   try {
     const mahasiswaId = req.user.id;
 
-    // Ambil data mahasiswa terbaru
+    // Ambil data mahasiswa terbaru beserta jadwal
     const mahasiswa = await prisma.mahasiswa.findUnique({
       where: { id: mahasiswaId },
-      include: { submissions: true },
+      include: {
+        submissions: true,
+        jadwal: {
+          orderBy: { tanggal: 'asc' },
+        },
+      },
     });
 
     if (!mahasiswa) {
@@ -56,7 +61,9 @@ router.get('/portal-data', async (req, res) => {
         angkatan: mahasiswa.angkatan,
         prodi: mahasiswa.prodi,
         judulSkripsi: mahasiswa.judulSkripsi,
+        fotoProfil: mahasiswa.fotoProfil,
       },
+      jadwal: mahasiswa.jadwal,
       portals,
     });
   } catch (error) {
@@ -174,6 +181,39 @@ router.put('/judul', async (req, res) => {
   } catch (error) {
     console.error('Error update judul skripsi:', error);
     return res.status(500).json({ success: false, message: 'Gagal memperbarui judul skripsi.' });
+  }
+});
+
+// Mahasiswa memperbarui foto profil sendiri (Base64 string)
+router.put('/foto', async (req, res) => {
+  try {
+    const mahasiswaId = req.user.id;
+    const { fotoProfil } = req.body;
+
+    const updated = await prisma.mahasiswa.update({
+      where: { id: mahasiswaId },
+      data: {
+        fotoProfil: fotoProfil || null,
+      },
+    });
+
+    // Real-time broadcast update foto
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('whitelist_updated', {
+        action: 'UPDATED',
+        mahasiswa: updated,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Foto profil berhasil diperbarui!',
+      fotoProfil: updated.fotoProfil,
+    });
+  } catch (error) {
+    console.error('Error update foto profil:', error);
+    return res.status(500).json({ success: false, message: 'Gagal memperbarui foto profil.' });
   }
 });
 

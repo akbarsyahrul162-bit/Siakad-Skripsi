@@ -11,6 +11,7 @@ const rateLimit = require('express-rate-limit');
 const authRoutes = require('./routes/auth');
 const mahasiswaRoutes = require('./routes/mahasiswa');
 const adminRoutes = require('./routes/admin');
+const publikRoutes = require('./routes/publik');
 
 const app = express();
 const server = http.createServer(app);
@@ -33,10 +34,10 @@ app.use(
   })
 );
 
-// 2. Parser & Cookie
+// 2. Parser & Cookie (Limit 10MB untuk upload base64 avatar profil)
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
 // 3. Lapisan Keamanan Anti-Brute Force (Rate Limiting)
@@ -65,6 +66,10 @@ app.get('/mahasiswa.html', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/mahasiswa.html'));
 });
 
+app.get('/login.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/login.html'));
+});
+
 app.get('/index.html', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
@@ -73,6 +78,7 @@ app.get('/index.html', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/mahasiswa', mahasiswaRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/publik', publikRoutes);
 
 // 6. Socket.io Event Handler
 io.on('connection', (socket) => {
