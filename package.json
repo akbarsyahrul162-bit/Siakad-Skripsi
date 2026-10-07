@@ -4,6 +4,7 @@
   "description": "Sistem Informasi Akademik & Portal Verifikasi Berkas Skripsi berbasis Whitelist NIM",
   "main": "server/index.js",
   "scripts": {
+    "postinstall": "prisma generate",
     "build": "prisma generate",
     "start": "node server/index.js",
     "dev": "node server/index.js",

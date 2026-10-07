@@ -125,11 +125,13 @@
         <!-- Alert Notification Box -->
         <div id="loginAlert" class="alert-box"></div>
 
-        <!-- Form 1 Pintu Masuk Tunggal -->
+        <!-- Form 1 Pintu Masuk -->
         <form id="formUnifiedLogin" onsubmit="handleUnifiedLogin(event)">
-          <div class="form-group">
-            <label for="inputUsername" style="font-size: 0.85rem; font-weight: 700; color: var(--primary-navy); margin-bottom: 0.4rem; display: block;">
-              Username / NIM Mahasiswa:
+          
+          <!-- 1. Kolom Username -->
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label for="inputUsername" style="font-size: 0.85rem; font-weight: 700; color: var(--primary-navy, #0d2346); margin-bottom: 0.4rem; display: block;">
+              Username
             </label>
             <div class="input-with-icon">
               <i class="fa-solid fa-user field-icon" style="font-size: 1rem; color: #64748b;"></i>
@@ -137,17 +139,36 @@
                 type="text" 
                 id="inputUsername" 
                 class="input-portal-single"
-                placeholder="Contoh: 452021001 atau admin" 
-                required 
+                placeholder="Username akun" 
                 autocomplete="username"
-                autofocus
               >
             </div>
           </div>
 
-          <div class="form-group" style="margin-top: 1rem;">
-            <label for="inputPassword" style="font-size: 0.85rem; font-weight: 700; color: var(--primary-navy); margin-bottom: 0.4rem; display: block;">
-              Kata Sandi (Password):
+          <!-- 2. Kolom NIM Mahasiswa -->
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label for="inputNim" style="font-size: 0.85rem; font-weight: 700; color: var(--primary-navy, #0d2346); margin-bottom: 0.4rem; display: block;">
+              Nomor Induk Mahasiswa (NIM)
+            </label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-id-card field-icon" style="font-size: 1rem; color: #64748b;"></i>
+              <input 
+                type="text" 
+                id="inputNim" 
+                class="input-portal-single"
+                placeholder="NIM Mahasiswa" 
+                autocomplete="off"
+              >
+            </div>
+            <small style="color: #64748b; font-size: 0.72rem; margin-top: 0.25rem; display: block;">
+              *Khusus Dosen / Admin: kolom NIM dapat dikosongkan.
+            </small>
+          </div>
+
+          <!-- 3. Kolom Kata Sandi -->
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label for="inputPassword" style="font-size: 0.85rem; font-weight: 700; color: var(--primary-navy, #0d2346); margin-bottom: 0.4rem; display: block;">
+              Kata Sandi (Password)
             </label>
             <div class="input-with-icon">
               <i class="fa-solid fa-lock field-icon" style="font-size: 1rem; color: #64748b;"></i>
@@ -155,13 +176,10 @@
                 type="password" 
                 id="inputPassword" 
                 class="input-portal-single"
-                placeholder="Dosen: admin12345 (Mahasiswa kosongkan/bebas)" 
+                placeholder="Kata Sandi" 
                 autocomplete="current-password"
               >
             </div>
-            <small style="color: var(--text-muted); font-size: 0.72rem; margin-top: 0.35rem; display: block;">
-              *Penentu Dosen: sandi <code>admin12345</code> • Mahasiswa: NIM yang terdaftar di whitelist
-            </small>
           </div>
 
           <button type="submit" class="btn-portal-submit" id="btnSubmitUnified">
@@ -170,29 +188,8 @@
           </button>
         </form>
 
-        <!-- Demo Quick Click Buttons -->
-        <div style="margin-top: 1.5rem; padding: 0.85rem; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px;">
-          <div style="font-size: 0.72rem; font-weight: 700; color: #475569; margin-bottom: 0.5rem; text-transform: uppercase;">
-            Pilihan Uji Coba Cepat (1-Klik):
-          </div>
-          <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
-            <button type="button" class="demo-chip-btn" onclick="isiForm('admin', 'admin12345')" style="color: #047857; border-color: #a7f3d0; background: #ecfdf5; font-weight: 700;">
-              👨‍🏫 Masuk Dosen (admin12345)
-            </button>
-            <button type="button" class="demo-chip-btn" onclick="isiForm('452021001', '')" style="color: #1d4ed8; border-color: #93c5fd; background: #eff6ff;">
-              🎓 Mahasiswa (452021001)
-            </button>
-            <button type="button" class="demo-chip-btn" onclick="isiForm('452021045', '')" style="color: #1d4ed8; border-color: #93c5fd; background: #eff6ff;">
-              🎓 Mahasiswa (452021045)
-            </button>
-            <button type="button" class="demo-chip-btn" onclick="isiForm('999999999', '')" style="color: #b91c1c; border-color: #fca5a5; background: #fef2f2;">
-              ⚠️ Tes NIM Tidak Terdaftar
-            </button>
-          </div>
-        </div>
-
         <!-- Helpdesk Footer -->
-        <div class="helpdesk-info">
+        <div class="helpdesk-info" style="margin-top: 1.5rem; font-size: 0.8rem; color: #64748b; text-align: center;">
           Butuh aktivasi NIM? Hubungi <strong>Helpdesk Akademik</strong> Gedung Rektorat Lt. 1.
         </div>
       </div>
@@ -219,26 +216,25 @@
       alertBox.style.display = 'block';
     }
 
-    function isiForm(user, pass) {
-      document.getElementById('inputUsername').value = user;
-      document.getElementById('inputPassword').value = pass;
-      handleUnifiedLogin();
-    }
-
     async function handleUnifiedLogin(e) {
       if (e && e.preventDefault) e.preventDefault();
       
       const userEl = document.getElementById('inputUsername');
+      const nimEl = document.getElementById('inputNim');
       const passEl = document.getElementById('inputPassword');
+
       const username = userEl ? userEl.value.trim() : '';
+      const nim = nimEl ? nimEl.value.trim() : '';
       const password = passEl ? passEl.value.trim() : '';
+
       const btn = document.getElementById('btnSubmitUnified');
       const alertBox = document.getElementById('loginAlert');
 
       if (alertBox) alertBox.style.display = 'none';
 
-      if (!username && !password) {
-        showAlert('Silakan masukkan Username / NIM atau Kata Sandi.', 'warning');
+      // Validasi input
+      if (!username && !nim && !password) {
+        showAlert('Silakan masukkan kredensial Anda (NIM Mahasiswa atau Kata Sandi Dosen).', 'warning');
         return;
       }
 
@@ -251,7 +247,11 @@
         const res = await fetch('/api/auth/login-unified', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
+          body: JSON.stringify({ 
+            username: username || nim, 
+            nim: nim, 
+            password: password 
+          }),
         });
 
         const data = await res.json();
