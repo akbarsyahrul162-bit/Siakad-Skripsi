@@ -264,7 +264,7 @@ router.post('/verify', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Data verifikasi tidak lengkap.' });
     }
 
-    if (!['APPROVED', 'REVISION', 'PENDING'].includes(status)) {
+    if (!['APPROVED', 'REVISION', 'PENDING', 'EMPTY'].includes(status)) {
       return res.status(400).json({ success: false, message: 'Status verifikasi tidak valid.' });
     }
 

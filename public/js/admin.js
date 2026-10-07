@@ -224,11 +224,17 @@ function renderTable(students) {
     portalKeys.forEach((key) => {
       const pData = (m.portals && m.portals[key]) || { status: 'EMPTY' };
       const meta = STATUS_META[pData.status] || STATUS_META.EMPTY;
+      const portalObj = globalPortalsConfig[key];
+      const shortName = portalObj && portalObj.nama ? portalObj.nama.split(':')[0].trim() : key;
+      const safeNote = escapeHtml(pData.catatanDosen || '');
 
       portalCellsHtml += `
         <td>
-          <span class="badge-status ${meta.cls}" style="font-size: 0.68rem; padding: 0.25rem 0.6rem; display: inline-flex; align-items: center; gap: 0.25rem;">
-            <i class="${meta.icon}"></i> ${meta.label}
+          <span class="badge-status badge-clickable ${meta.cls}" 
+                onclick="openQuickStatusModal(${m.id}, '${escapeHtml(m.nama)}', '${key}', '${pData.status}', '${safeNote}')" 
+                title="Klik untuk ubah status ${escapeHtml(shortName)} (${escapeHtml(m.nama)})"
+                style="font-size: 0.68rem; padding: 0.25rem 0.6rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+            <i class="${meta.icon}"></i> ${meta.label} <i class="fa-solid fa-pen" style="font-size: 0.55rem; opacity: 0.7; margin-left: 2px;"></i>
           </span>
         </td>
       `;
@@ -271,6 +277,139 @@ function renderTable(students) {
   });
 
   tbody.innerHTML = html;
+}
+
+// ==========================================
+// QUICK STATUS MODAL (KLIK LANGSUNG DARI TABEL)
+// ==========================================
+async function openQuickStatusModal(studentId, studentName, portalKey, currentStatus, currentNote) {
+  const portal = globalPortalsConfig[portalKey] || { nama: portalKey };
+  const portalTitle = portal.nama || portalKey;
+
+  const initialStatus = currentStatus && currentStatus !== 'undefined' ? currentStatus : 'EMPTY';
+  window.quickSelectedStatus = initialStatus;
+
+  const { value: formValues } = await Swal.fire({
+    title: `<div style="font-size: 1.15rem; color: #0d2346; font-weight: 800;"><i class="fa-solid fa-pen-to-square" style="color: #0284c7; margin-right: 0.35rem;"></i> Ubah Status Berkas</div>`,
+    html: `
+      <div style="text-align: left; font-size: 0.85rem;">
+        <div style="background: #f8fafc; padding: 0.85rem 1rem; border-radius: 8px; margin-bottom: 1.25rem; border: 1px solid #e2e8f0; border-left: 4px solid #0284c7;">
+          <div style="font-weight: 700; color: #0f172a; font-size: 0.95rem;">${escapeHtml(studentName)}</div>
+          <div style="font-size: 0.78rem; color: #475569; margin-top: 3px;">${escapeHtml(portalTitle)}</div>
+        </div>
+
+        <label style="font-weight: 700; color: #1e293b; display: block; margin-bottom: 0.6rem;">
+          Pilih Status Keputusan:
+        </label>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 1.25rem;" id="quickStatusBtnGroup">
+          <button type="button" class="swal-status-btn" id="btnStatusApproved" onclick="selectQuickStatusOption('APPROVED', this)" style="padding: 0.65rem 0.5rem; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; border: 2px solid ${initialStatus === 'APPROVED' ? '#059669' : '#a7f3d0'}; background: ${initialStatus === 'APPROVED' ? '#d1fae5' : '#f0fdf4'}; color: #047857; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: all 0.2s;">
+            <i class="fa-solid fa-circle-check"></i> ACC / Disetujui
+          </button>
+
+          <button type="button" class="swal-status-btn" id="btnStatusPending" onclick="selectQuickStatusOption('PENDING', this)" style="padding: 0.65rem 0.5rem; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; border: 2px solid ${initialStatus === 'PENDING' ? '#d97706' : '#fde68a'}; background: ${initialStatus === 'PENDING' ? '#fef3c7' : '#fffbeb'}; color: #b45309; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: all 0.2s;">
+            <i class="fa-solid fa-hourglass-half"></i> Sedang Diproses
+          </button>
+
+          <button type="button" class="swal-status-btn" id="btnStatusRevision" onclick="selectQuickStatusOption('REVISION', this)" style="padding: 0.65rem 0.5rem; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; border: 2px solid ${initialStatus === 'REVISION' ? '#dc2626' : '#fecaca'}; background: ${initialStatus === 'REVISION' ? '#fee2e2' : '#fef2f2'}; color: #b91c1c; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: all 0.2s;">
+            <i class="fa-solid fa-triangle-exclamation"></i> Perlu Revisi
+          </button>
+
+          <button type="button" class="swal-status-btn" id="btnStatusEmpty" onclick="selectQuickStatusOption('EMPTY', this)" style="padding: 0.65rem 0.5rem; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; border: 2px solid ${initialStatus === 'EMPTY' ? '#64748b' : '#cbd5e1'}; background: ${initialStatus === 'EMPTY' ? '#e2e8f0' : '#f8fafc'}; color: #475569; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: all 0.2s;">
+            <i class="fa-regular fa-clock"></i> Belum Diisi
+          </button>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label style="font-weight: 600; color: #334155; display: block; margin-bottom: 0.35rem; font-size: 0.8rem;">
+            Catatan Dosen / Pesan Revisi:
+          </label>
+          <textarea id="swal-quick-catatan" class="swal2-textarea" style="width: 100%; margin: 0; box-sizing: border-box; font-size: 0.82rem; min-height: 65px; border-radius: 6px;" placeholder="Contoh: Berkas sudah lengkap dan valid... atau Mohon unggah ulang lembar perbaikan yang telah ditandatangani...">${escapeHtml(currentNote || '')}</textarea>
+        </div>
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: '<i class="fa-solid fa-paper-plane"></i> Simpan & Kirim Status',
+    cancelButtonText: 'Batal',
+    confirmButtonColor: '#0d2346',
+    cancelButtonColor: '#64748b',
+    preConfirm: () => {
+      const status = window.quickSelectedStatus || initialStatus;
+      const catatanDosen = document.getElementById('swal-quick-catatan').value.trim();
+
+      if (status === 'REVISION' && !catatanDosen) {
+        Swal.showValidationMessage('Harap masukkan catatan perbaikan untuk status Revisi!');
+        return false;
+      }
+
+      return { status, catatanDosen };
+    }
+  });
+
+  if (!formValues) return;
+
+  try {
+    const res = await fetch('/api/admin/verify', {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        mahasiswaId: studentId,
+        portal: portalKey,
+        status: formValues.status,
+        catatanDosen: formValues.catatanDosen,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menyimpan',
+        text: data.message || 'Terjadi kesalahan saat menyimpan verifikasi.',
+        confirmButtonColor: '#0d2346'
+      });
+      return;
+    }
+
+    // Refresh table directly
+    loadStudents(false);
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Status Diperbarui!',
+      text: `Status ${portalTitle} untuk ${studentName} telah diubah menjadi ${formValues.status}. Progres langsung tampil di dashboard mahasiswa!`,
+      timer: 2200,
+      showConfirmButton: false
+    });
+  } catch (err) {
+    console.error(err);
+    Swal.fire({
+      icon: 'error',
+      title: 'Koneksi Gagal',
+      text: 'Tidak dapat menghubungi server.',
+      confirmButtonColor: '#0d2346'
+    });
+  }
+}
+
+function selectQuickStatusOption(status, btnElement) {
+  window.quickSelectedStatus = status;
+  const allBtns = document.querySelectorAll('#quickStatusBtnGroup .swal-status-btn');
+  allBtns.forEach((b) => {
+    b.style.boxShadow = 'none';
+    b.style.transform = 'none';
+    b.style.borderWidth = '2px';
+  });
+
+  btnElement.style.boxShadow = '0 0 0 3px rgba(14, 165, 233, 0.4)';
+  btnElement.style.transform = 'scale(1.03)';
+
+  const catatanEl = document.getElementById('swal-quick-catatan');
+  if (status === 'REVISION' && catatanEl) {
+    catatanEl.focus();
+  }
 }
 
 // ==========================================

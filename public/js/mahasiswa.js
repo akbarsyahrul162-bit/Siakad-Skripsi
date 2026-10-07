@@ -120,6 +120,7 @@ async function loadPortalData(showLoading = true) {
     currentPortals = data.portals;
 
     renderStudentProfile(currentStudent);
+    renderProgressTracker(currentPortals);
     renderPortals(currentPortals);
   } catch (err) {
     console.error(err);
@@ -130,6 +131,63 @@ async function loadPortalData(showLoading = true) {
         </div>
       `;
     }
+  }
+}
+
+// Render progress tracker card
+function renderProgressTracker(portals) {
+  if (!Array.isArray(portals) || portals.length === 0) return;
+
+  const total = portals.length;
+  let approvedCount = 0;
+  let pendingCount = 0;
+  let revisionCount = 0;
+
+  portals.forEach((p) => {
+    const status = (p.submission && p.submission.status) || 'EMPTY';
+    if (status === 'APPROVED') approvedCount++;
+    if (status === 'PENDING') pendingCount++;
+    if (status === 'REVISION') revisionCount++;
+  });
+
+  const percentage = Math.round((approvedCount / total) * 100);
+
+  const fillEl = document.getElementById('progressBarFill');
+  const percentEl = document.getElementById('progressPercentageText');
+  const summaryEl = document.getElementById('progressSummaryText');
+  const stepsEl = document.getElementById('progressStepsContainer');
+
+  if (fillEl) fillEl.style.width = `${percentage}%`;
+  if (percentEl) percentEl.textContent = `${percentage}%`;
+
+  if (summaryEl) {
+    let summaryExtra = '';
+    if (revisionCount > 0) {
+      summaryExtra = ` • <span style="color: #dc2626; font-weight: 700;">${revisionCount} tahap perlu perbaikan (revisi)</span>`;
+    } else if (pendingCount > 0) {
+      summaryExtra = ` • <span style="color: #d97706; font-weight: 700;">${pendingCount} tahap menunggu verifikasi</span>`;
+    } else if (approvedCount === total) {
+      summaryExtra = ` • <span style="color: #059669; font-weight: 700;">🎉 Seluruh tahapan telah disetujui!</span>`;
+    }
+
+    summaryEl.innerHTML = `${approvedCount} dari ${total} tahapan disetujui (ACC)${summaryExtra}`;
+  }
+
+  if (stepsEl) {
+    stepsEl.innerHTML = portals
+      .map((p, idx) => {
+        const sub = p.submission || {};
+        const statusKey = sub.status || 'EMPTY';
+        const meta = STATUS_META[statusKey] || STATUS_META.EMPTY;
+        const shortName = p.nama ? p.nama.split(':')[0].trim() : `Portal ${idx + 1}`;
+
+        return `
+        <span class="badge-status ${meta.cls}" style="font-size: 0.7rem; padding: 0.25rem 0.65rem; border-radius: 999px;">
+          <i class="${meta.icon}"></i> <strong>${escapeHtml(shortName)}:</strong> ${meta.label}
+        </span>
+      `;
+      })
+      .join('');
   }
 }
 
