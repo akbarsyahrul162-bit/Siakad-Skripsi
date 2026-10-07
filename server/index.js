@@ -71,6 +71,19 @@ app.use('/api/auth/login-dosen', loginLimiter);
 // 4. File Statis Frontend
 app.use(express.static(path.join(__dirname, '../public')));
 
+// Explicit page routes
+app.get('/admin.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
+
+app.get('/mahasiswa.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/mahasiswa.html'));
+});
+
+app.get('/index.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
 // 5. Rute API
 app.use('/api/auth', authRoutes);
 app.use('/api/mahasiswa', mahasiswaRoutes);
