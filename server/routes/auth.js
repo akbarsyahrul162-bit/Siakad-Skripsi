@@ -48,6 +48,11 @@ router.post('/login-unified', async (req, res) => {
         maxAge: 24 * 60 * 60 * 1000,
       });
 
+      // Jika request dikirim langsung lewat form browser biasa (non-fetch/AJAX)
+      if (req.headers.accept && req.headers.accept.includes('text/html')) {
+        return res.redirect('/admin.html');
+      }
+
       return res.json({
         success: true,
         role: 'DOSEN',
@@ -94,6 +99,11 @@ router.post('/login-unified', async (req, res) => {
       sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000,
     });
+
+    // Jika request dikirim langsung lewat form browser biasa (non-fetch/AJAX)
+    if (req.headers.accept && req.headers.accept.includes('text/html')) {
+      return res.redirect('/mahasiswa.html');
+    }
 
     return res.json({
       success: true,

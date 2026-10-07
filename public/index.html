@@ -126,7 +126,7 @@
         <div id="loginAlert" class="alert-box"></div>
 
         <!-- Form 1 Pintu Masuk -->
-        <form id="formUnifiedLogin" onsubmit="handleUnifiedLogin(event)">
+        <form id="formUnifiedLogin" action="/api/auth/login-unified" method="POST" onsubmit="handleUnifiedLogin(event)">
           
           <!-- 1. Kolom Username -->
           <div class="form-group" style="margin-bottom: 0.85rem;">
@@ -138,6 +138,7 @@
               <input 
                 type="text" 
                 id="inputUsername" 
+                name="username"
                 class="input-portal-single"
                 placeholder="Username akun" 
                 autocomplete="username"
@@ -155,6 +156,7 @@
               <input 
                 type="text" 
                 id="inputNim" 
+                name="nim"
                 class="input-portal-single"
                 placeholder="NIM Mahasiswa" 
                 autocomplete="off"
@@ -175,6 +177,7 @@
               <input 
                 type="password" 
                 id="inputPassword" 
+                name="password"
                 class="input-portal-single"
                 placeholder="Kata Sandi" 
                 autocomplete="current-password"
@@ -182,7 +185,7 @@
             </div>
           </div>
 
-          <button type="button" class="btn-portal-submit" id="btnSubmitUnified" onclick="handleUnifiedLogin(event)">
+          <button type="submit" class="btn-portal-submit" id="btnSubmitUnified">
             <span>Masuk ke Portal</span>
             <i class="fa-solid fa-arrow-right"></i>
           </button>
