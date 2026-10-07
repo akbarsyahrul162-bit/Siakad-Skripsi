@@ -265,10 +265,8 @@
           return;
         }
 
-        showAlert(data.message || 'Berhasil masuk! Mengalihkan...', 'success');
-        setTimeout(() => {
-          window.location.href = data.redirect || (data.role === 'DOSEN' ? '/admin.html' : '/mahasiswa.html');
-        }, 500);
+        // Jika login berhasil, langsung alihkan ke halaman tujuan seketika tanpa menampilkan banner hijau
+        window.location.href = data.redirect || (data.role === 'DOSEN' ? '/admin.html' : '/mahasiswa.html');
 
       } catch (err) {
         console.error(err);
