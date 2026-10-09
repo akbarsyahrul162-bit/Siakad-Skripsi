@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
@@ -13,19 +13,13 @@
   <header class="academic-navbar">
     <div class="navbar-container">
       <div class="brand-section">
-        <div class="university-crest">
-          <i class="fa-solid fa-graduation-cap"></i>
-        </div>
+        <img src="/img/Logo-Fakultas-Psikologi.png" alt="Logo Fakultas Psikologi Universitas Bosowa" class="navbar-logo-img">
         <div class="brand-title">
           <span class="main-name">SIAKAD SKRIPSI</span>
-          <span class="sub-name">Portal Akademik Mahasiswa Bimbingan</span>
+          <span class="sub-name">Fakultas Psikologi – Universitas Bosowa</span>
         </div>
       </div>
       <div class="nav-user-meta">
-        <div class="live-indicator">
-          <span class="live-dot"></span>
-          <span>Live Sync</span>
-        </div>
         <a href="/login.html" class="btn-primary" style="width: auto; padding: 0.55rem 1.25rem; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem;">
           <i class="fa-solid fa-right-to-bracket"></i>
           <span>Masuk ke Portal</span>
@@ -34,9 +28,9 @@
     </div>
   </header>
 
-  <!-- Hero Section -->
+  <!-- Hero Section (Left-Aligned) -->
   <section class="hero-public">
-    <div class="hero-container">
+    <div class="hero-container hero-container-left">
       <div class="hero-chip" id="heroChip">
         <i class="fa-solid fa-building-columns"></i>
         <span id="txtHeaderChip">Tahun Akademik 2024/2025 Genap</span>
@@ -62,8 +56,8 @@
     </div>
   </section>
 
-  <!-- Main Container -->
-  <main class="dashboard-container" style="margin-top: -1.75rem;">
+  <!-- Main Container (margin-top positif agar tidak tertimpa navbar) -->
+  <main class="dashboard-container" style="margin-top: 2rem;">
 
     <!-- Summary Stats Cards -->
     <div class="admin-stats-row" style="margin-bottom: 2rem;">
@@ -120,9 +114,8 @@
             Jadwal pelaksanaan Seminar Proposal, Seminar Hasil, dan Sidang Skripsi yang telah diverifikasi
           </span>
         </div>
-        <span class="live-indicator">
-          <span class="live-dot"></span>
-          <span id="jadwalCountLabel">0 Terjadwal</span>
+        <span style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; border-radius: 999px; font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.75rem;" id="jadwalCountLabel">
+          0 Terjadwal
         </span>
       </div>
 
