@@ -137,12 +137,29 @@
             >
           </div>
 
-          <select class="select-filter" id="filterAngkatan" onchange="handleFilter()">
-            <option value="">Semua Angkatan</option>
-            <option value="2021">Angkatan 2021</option>
-            <option value="2020">Angkatan 2020</option>
-            <option value="2019">Angkatan 2019</option>
-          </select>
+          <div class="filter-input-wrapper">
+            <i class="fa-solid fa-calendar-days" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.82rem; pointer-events: none;"></i>
+            <input 
+              type="text" 
+              id="filterAngkatan" 
+              class="select-filter" 
+              placeholder="Ketik Angkatan (mis: 2019)..." 
+              list="listAngkatanBeranda"
+              oninput="handleFilter()"
+              onchange="handleFilter()"
+              autocomplete="off"
+            >
+            <datalist id="listAngkatanBeranda">
+              <option value="Semua Angkatan"></option>
+              <option value="Angkatan 2024"></option>
+              <option value="Angkatan 2023"></option>
+              <option value="Angkatan 2022"></option>
+              <option value="Angkatan 2021"></option>
+              <option value="Angkatan 2020"></option>
+              <option value="Angkatan 2019"></option>
+              <option value="Angkatan 2018"></option>
+            </datalist>
+          </div>
 
           <select class="select-filter" id="filterStatus" onchange="handleFilter()">
             <option value="">Semua Status</option>

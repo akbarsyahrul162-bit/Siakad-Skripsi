@@ -1029,6 +1029,23 @@ body {
   background: white;
   color: var(--text-main);
   cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.filter-input-wrapper {
+  position: relative;
+  min-width: 175px;
+}
+
+.filter-input-wrapper input.select-filter {
+  padding-left: 2.15rem;
+  width: 100%;
+  cursor: text;
+}
+
+.filter-input-wrapper input.select-filter:focus {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .btn-add-student {
@@ -1438,8 +1455,10 @@ body {
     gap: 0.6rem;
   }
   .toolbar-filters .search-box,
-  .toolbar-filters .select-filter {
+  .toolbar-filters .select-filter,
+  .toolbar-filters .filter-input-wrapper {
     width: 100%;
+    min-width: 100%;
   }
   .select-filter {
     width: 100%;

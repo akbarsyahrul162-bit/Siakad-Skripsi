@@ -31,6 +31,7 @@ function restoreBerandaCache() {
     if (data.stats) renderStats(data.stats);
     if (Array.isArray(data.mahasiswa)) {
       allStudents = data.mahasiswa;
+      populateAngkatanDatalist('listAngkatanBeranda');
       renderStudentTable(allStudents);
     }
     if (Array.isArray(data.jadwal)) {
@@ -110,6 +111,7 @@ async function fetchBerandaBootstrap() {
       if (data.stats) renderStats(data.stats);
       if (Array.isArray(data.mahasiswa)) {
         allStudents = data.mahasiswa;
+        populateAngkatanDatalist('listAngkatanBeranda');
         filterStudents();
       }
       if (Array.isArray(data.jadwal)) {
@@ -352,26 +354,98 @@ function renderJadwalList(jadwalList) {
   }).join('');
 }
 
-// 7. Filter & Search
+// Helper deteksi dan ekstraksi angka tahun dari narasi bebas yang diketik pengguna
+function extractYearFromText(input) {
+  if (!input) return null;
+  const str = String(input).trim();
+  if (!str) return null;
+
+  // Jika pengguna mengetik kata "semua", jangan filter (tampilkan semua angkatan)
+  if (/^semua/i.test(str)) return null;
+
+  // 1. Cek jika ada 4 digit tahun (misal: 1990 - 2099) di dalam teks
+  const fourDigitMatches = str.match(/\b(19\d\d|20\d\d)\b/g);
+  if (fourDigitMatches && fourDigitMatches.length > 0) {
+    // Ambil tahun yang ditulis di akhir kalimat (sesuai permintaan user: "narasi lalu ditutup angka diakhir misal 2019")
+    return fourDigitMatches[fourDigitMatches.length - 1];
+  }
+
+  // 2. Cek angka di akhir string (misal: "angkatan 2019" atau "mhs 19")
+  const trailingDigitsMatch = str.match(/(\d+)\s*$/);
+  if (trailingDigitsMatch) {
+    const num = trailingDigitsMatch[1];
+    if (num.length === 4) return num;
+    if (num.length === 2) {
+      const n = parseInt(num, 10);
+      return n > 50 ? '19' + num : '20' + num;
+    }
+    return num;
+  }
+
+  // 3. Cek sembarang angka di dalam teks
+  const anyDigitsMatch = str.match(/\d+/g);
+  if (anyDigitsMatch && anyDigitsMatch.length > 0) {
+    const lastNum = anyDigitsMatch[anyDigitsMatch.length - 1];
+    if (lastNum.length === 4) return lastNum;
+    if (lastNum.length === 2) {
+      const n = parseInt(lastNum, 10);
+      return n > 50 ? '19' + lastNum : '20' + lastNum;
+    }
+    return lastNum;
+  }
+
+  return null;
+}
+
+// Update Datalist Opsi Angkatan secara Dinamis
+function populateAngkatanDatalist(datalistId) {
+  const dl = document.getElementById(datalistId);
+  if (!dl || !Array.isArray(allStudents)) return;
+  const uniqueYears = Array.from(new Set(
+    allStudents
+      .map((s) => extractYearFromText(s.angkatan) || String(s.angkatan || '').trim())
+      .filter((y) => y && /^\d+$/.test(y))
+  )).sort().reverse();
+
+  let html = '<option value="Semua Angkatan"></option>';
+  uniqueYears.forEach((y) => {
+    html += `<option value="Angkatan ${y}"></option>`;
+    html += `<option value="${y}"></option>`;
+  });
+  dl.innerHTML = html;
+}
+
+// 7. Filter & Search dengan Smart Detection Tahun Angkatan
 function handleFilter() {
   const searchInput = document.getElementById('searchStudentInput');
   const filterAngkatan = document.getElementById('filterAngkatan');
   const filterStatus = document.getElementById('filterStatus');
 
   const q = searchInput ? searchInput.value.toLowerCase().trim() : '';
-  const angkatan = filterAngkatan ? filterAngkatan.value : '';
+  const rawAngkatan = filterAngkatan ? filterAngkatan.value.trim() : '';
+  const detectedYear = extractYearFromText(rawAngkatan);
   const status = filterStatus ? filterStatus.value : '';
 
   const filtered = allStudents.filter((m) => {
     const matchQ = !q || (m.nama && m.nama.toLowerCase().includes(q)) ||
                    (m.nim && m.nim.toLowerCase().includes(q)) ||
                    (m.judulSkripsi && m.judulSkripsi.toLowerCase().includes(q));
-    const matchAngkatan = !angkatan || String(m.angkatan) === String(angkatan);
+
+    let matchAngkatan = true;
+    if (detectedYear) {
+      const mhsYear = extractYearFromText(m.angkatan) || String(m.angkatan || '');
+      matchAngkatan = mhsYear === detectedYear || String(m.angkatan || '').includes(detectedYear);
+    }
+
     const matchStatus = !status || m.statusRingkas === status;
     return matchQ && matchAngkatan && matchStatus;
   });
 
   renderStudentTable(filtered);
+}
+
+function filterStudents() {
+  handleFilter();
 }
 
 // 8. Real-Time Synchronization via Socket.io
