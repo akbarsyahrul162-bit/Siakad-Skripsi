@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadStudents();
   loadJadwalAdmin(false);
   loadSiteConfigAdmin();
+  loadDosenProfile();
 });
 
 // Auto-expand textarea helper
@@ -84,6 +85,14 @@ function initSocket() {
     });
     socket.on('siteconfig_bulk_updated', () => {
       loadSiteConfigAdmin();
+    });
+
+    // Real-Time Listener: Saat profil dosen diperbarui
+    socket.on('dosen_profile_updated', (data) => {
+      if (data) {
+        currentDosenProfile = data;
+        renderDosenProfileNavbar(data);
+      }
     });
 
     // Real-Time Listener: Saat struktur portal / syarat diubah oleh admin
@@ -1825,6 +1834,206 @@ async function handleSaveSiteConfig(e) {
     if (btn) {
       btn.disabled = false;
       btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>Simpan Semua Pengaturan Narasi</span>`;
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// MANAJEMEN PROFIL DOSEN (NAMA, JABATAN & FOTO PROFIL HD)
+// ══════════════════════════════════════════════════════════════
+let currentDosenProfile = {
+  nama: 'Dr. Ir. Fitrah, M.T.',
+  jabatan: 'Dosen Pembimbing Skripsi',
+  foto: null,
+};
+let pendingDosenPhotoBase64 = null;
+
+async function loadDosenProfile() {
+  try {
+    const res = await fetch('/api/admin/profile', {
+      headers: getAuthHeaders(),
+    });
+    if (res.status === 401 || res.status === 403) return;
+    const data = await res.json();
+    if (data.success && data.profile) {
+      currentDosenProfile = data.profile;
+      renderDosenProfileNavbar(currentDosenProfile);
+    }
+  } catch (err) {
+    console.error('Error load dosen profile:', err);
+  }
+}
+
+function renderDosenProfileNavbar(prof) {
+  if (!prof) return;
+  const nameEl = document.getElementById('navAdminName');
+  const roleEl = document.getElementById('navAdminRole');
+  const avatarEl = document.getElementById('navAdminAvatar');
+
+  if (nameEl && prof.nama) nameEl.textContent = prof.nama;
+  if (roleEl && prof.jabatan) roleEl.textContent = prof.jabatan;
+
+  if (avatarEl) {
+    if (prof.foto) {
+      avatarEl.innerHTML = `<img src="${prof.foto}" alt="${escapeHtml(prof.nama)}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+    } else {
+      const initials = (prof.nama || 'Dosen')
+        .split(' ')
+        .map((w) => w[0])
+        .filter((c) => c && c.match(/[A-Za-z]/))
+        .slice(0, 2)
+        .join('')
+        .toUpperCase() || 'DF';
+      avatarEl.textContent = initials;
+    }
+  }
+}
+
+function openDosenProfileModal() {
+  const modal = document.getElementById('dosenProfileModal');
+  if (!modal) return;
+
+  document.getElementById('inputDosenNama').value = currentDosenProfile.nama || '';
+  document.getElementById('inputDosenJabatan').value = currentDosenProfile.jabatan || '';
+
+  pendingDosenPhotoBase64 = currentDosenProfile.foto || null;
+  const previewEl = document.getElementById('modalDosenAvatarPreview');
+  if (previewEl) {
+    if (pendingDosenPhotoBase64) {
+      previewEl.innerHTML = `<img src="${pendingDosenPhotoBase64}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+    } else {
+      const initials = (currentDosenProfile.nama || 'DF')
+        .split(' ')
+        .map((w) => w[0])
+        .filter((c) => c && c.match(/[A-Za-z]/))
+        .slice(0, 2)
+        .join('')
+        .toUpperCase() || 'DF';
+      previewEl.textContent = initials;
+    }
+  }
+
+  modal.style.display = 'flex';
+}
+
+function closeDosenProfileModal() {
+  const modal = document.getElementById('dosenProfileModal');
+  if (modal) modal.style.display = 'none';
+  pendingDosenPhotoBase64 = null;
+}
+
+function handleDosenPhotoSelected(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Format Tidak Sesuai',
+      text: 'Harap pilih file gambar (JPG/PNG/WEBP).',
+      confirmButtonColor: '#0d2346',
+    });
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    const img = new Image();
+    img.onload = () => {
+      // Crop & resize square 400x400 HD
+      const canvas = document.createElement('canvas');
+      const size = 400;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      const minDim = Math.min(img.width, img.height);
+      const startX = (img.width - minDim) / 2;
+      const startY = (img.height - minDim) / 2;
+
+      ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, size, size);
+      const base64 = canvas.toDataURL('image/jpeg', 0.9);
+      pendingDosenPhotoBase64 = base64;
+
+      const previewEl = document.getElementById('modalDosenAvatarPreview');
+      if (previewEl) {
+        previewEl.innerHTML = `<img src="${base64}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+      }
+    };
+    img.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function handleSaveDosenProfile(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  const nama = document.getElementById('inputDosenNama').value.trim();
+  const jabatan = document.getElementById('inputDosenJabatan').value.trim();
+  const btn = document.getElementById('btnSaveDosenProfile');
+
+  if (!nama || !jabatan) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Field Kosong',
+      text: 'Nama lengkap dan jabatan tidak boleh kosong.',
+      confirmButtonColor: '#0d2346',
+    });
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`;
+  }
+
+  try {
+    const res = await fetch('/api/admin/profile', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        nama,
+        jabatan,
+        foto: pendingDosenPhotoBase64,
+      }),
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      currentDosenProfile = data.profile;
+      renderDosenProfileNavbar(currentDosenProfile);
+      closeDosenProfileModal();
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Profil Berhasil Disimpan',
+        text: 'Nama, jabatan, dan foto profil dosen telah diperbarui secara real-time!',
+        timer: 1800,
+        showConfirmButton: false,
+      });
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: data.message || 'Gagal menyimpan profil dosen.',
+        confirmButtonColor: '#0d2346',
+      });
+    }
+  } catch (err) {
+    console.error('Error save profile dosen:', err);
+    Swal.fire({
+      icon: 'error',
+      title: 'Kesalahan Sistem',
+      text: 'Terjadi gangguan jaringan saat menyimpan profil.',
+      confirmButtonColor: '#0d2346',
+    });
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Simpan Profil`;
     }
   }
 }

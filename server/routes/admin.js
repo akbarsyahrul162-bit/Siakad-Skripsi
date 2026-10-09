@@ -665,5 +665,78 @@ router.put('/mahasiswa/:id/foto', async (req, res) => {
   }
 });
 
+// Profil Dosen / Admin
+router.get('/profile', async (req, res) => {
+  try {
+    const keys = ['dosen_nama', 'dosen_jabatan', 'dosen_foto'];
+    const configs = await prisma.siteConfig.findMany({
+      where: { key: { in: keys } },
+    });
+    const map = {};
+    configs.forEach((c) => { map[c.key] = c.value; });
+
+    return res.json({
+      success: true,
+      profile: {
+        nama: map['dosen_nama'] || 'Dr. Ir. Fitrah, M.T.',
+        jabatan: map['dosen_jabatan'] || 'Dosen Pembimbing Skripsi',
+        foto: map['dosen_foto'] || null,
+      },
+    });
+  } catch (error) {
+    console.error('Error get admin profile:', error);
+    return res.status(500).json({ success: false, message: 'Gagal mengambil profil dosen.' });
+  }
+});
+
+router.put('/profile', async (req, res) => {
+  try {
+    const { nama, jabatan, foto } = req.body;
+
+    const updates = [];
+    if (nama !== undefined) {
+      updates.push(prisma.siteConfig.upsert({
+        where: { key: 'dosen_nama' },
+        update: { value: String(nama) },
+        create: { key: 'dosen_nama', value: String(nama) },
+      }));
+    }
+    if (jabatan !== undefined) {
+      updates.push(prisma.siteConfig.upsert({
+        where: { key: 'dosen_jabatan' },
+        update: { value: String(jabatan) },
+        create: { key: 'dosen_jabatan', value: String(jabatan) },
+      }));
+    }
+    if (foto !== undefined) {
+      updates.push(prisma.siteConfig.upsert({
+        where: { key: 'dosen_foto' },
+        update: { value: foto || '' },
+        create: { key: 'dosen_foto', value: foto || '' },
+      }));
+    }
+
+    await Promise.all(updates);
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('dosen_profile_updated', {
+        nama,
+        jabatan,
+        foto,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Profil dosen berhasil diperbarui!',
+      profile: { nama, jabatan, foto },
+    });
+  } catch (error) {
+    console.error('Error update admin profile:', error);
+    return res.status(500).json({ success: false, message: 'Gagal memperbarui profil dosen.' });
+  }
+});
+
 module.exports = router;
 
