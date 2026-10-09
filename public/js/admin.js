@@ -22,6 +22,19 @@ document.addEventListener('DOMContentLoaded', () => {
   loadSiteConfigAdmin();
 });
 
+// Auto-expand textarea helper
+function autoResizeTextarea(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = Math.max(el.scrollHeight, 38) + 'px';
+}
+
+document.addEventListener('input', (e) => {
+  if (e.target && e.target.classList.contains('auto-expand-textarea')) {
+    autoResizeTextarea(e.target);
+  }
+});
+
 // Setup Socket.io
 function initSocket() {
   try {
@@ -614,13 +627,13 @@ function renderRequirementsEditor() {
           <label style="font-size: 0.72rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">
             Nama Syarat Dokumen *
           </label>
-          <input type="text" class="input-portal-single req-doc-name" value="${escapeHtml(b.nama)}" placeholder="Contoh: Kartu Logbook / Bukti Bimbingan" style="font-size: 0.82rem; padding: 0.45rem 0.65rem;">
+          <textarea class="auto-expand-textarea req-doc-name" rows="1" placeholder="Contoh: Kartu Logbook / Bukti Bimbingan" style="font-size: 0.82rem; padding: 0.45rem 0.65rem; min-height: 38px;">${escapeHtml(b.nama)}</textarea>
         </div>
         <div>
           <label style="font-size: 0.72rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">
             Keterangan / Ketentuan Berkas
           </label>
-          <input type="text" class="input-portal-single req-doc-desc" value="${escapeHtml(b.keterangan)}" placeholder="Contoh: Telah disetujui tim pembimbing" style="font-size: 0.82rem; padding: 0.45rem 0.65rem;">
+          <textarea class="auto-expand-textarea req-doc-desc" rows="1" placeholder="Contoh: Telah disetujui tim pembimbing" style="font-size: 0.82rem; padding: 0.45rem 0.65rem; min-height: 38px;">${escapeHtml(b.keterangan)}</textarea>
         </div>
       </div>
 
@@ -639,6 +652,10 @@ function renderRequirementsEditor() {
   `
     )
     .join('');
+
+  setTimeout(() => {
+    container.querySelectorAll('.auto-expand-textarea').forEach(autoResizeTextarea);
+  }, 30);
 }
 
 function addDocRequirementRow() {
@@ -663,13 +680,13 @@ function addDocRequirementRow() {
         <label style="font-size: 0.72rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">
           Nama Syarat Dokumen *
         </label>
-        <input type="text" class="input-portal-single req-doc-name" placeholder="Nama Dokumen Baru" style="font-size: 0.82rem; padding: 0.45rem 0.65rem;">
+        <textarea class="auto-expand-textarea req-doc-name" rows="1" placeholder="Nama Dokumen Baru" style="font-size: 0.82rem; padding: 0.45rem 0.65rem; min-height: 38px;"></textarea>
       </div>
       <div>
         <label style="font-size: 0.72rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">
           Keterangan / Ketentuan Berkas
         </label>
-        <input type="text" class="input-portal-single req-doc-desc" placeholder="Keterangan / Ketentuan" style="font-size: 0.82rem; padding: 0.45rem 0.65rem;">
+        <textarea class="auto-expand-textarea req-doc-desc" rows="1" placeholder="Keterangan / Ketentuan" style="font-size: 0.82rem; padding: 0.45rem 0.65rem; min-height: 38px;"></textarea>
       </div>
     </div>
 
@@ -686,6 +703,9 @@ function addDocRequirementRow() {
     </div>
   `;
   container.appendChild(div);
+  setTimeout(() => {
+    div.querySelectorAll('.auto-expand-textarea').forEach(autoResizeTextarea);
+  }, 30);
 }
 
 function removeDocRequirementRow(btn) {
@@ -1364,6 +1384,9 @@ function switchAdminTab(tabName) {
     if (btnSiteConfig) btnSiteConfig.classList.add('active');
     if (viewSiteConfig) viewSiteConfig.style.display = 'block';
     loadSiteConfigAdmin();
+    setTimeout(() => {
+      document.querySelectorAll('#formSiteConfig .auto-expand-textarea').forEach(autoResizeTextarea);
+    }, 80);
   }
 }
 
@@ -1732,6 +1755,10 @@ async function loadSiteConfigAdmin() {
       setVal('cfg_login_petunjuk_admin', cfg.login_petunjuk_admin || 'Masukkan kata sandi admin12345 (atau username admin) untuk masuk ke Dashboard Monitoring.');
       setVal('cfg_login_petunjuk_mhs', cfg.login_petunjuk_mhs || 'Masukkan NIM Anda yang sudah didaftarkan oleh dosen di dashboard admin.');
       setVal('cfg_helpdesk_info', cfg.helpdesk_info || 'Butuh aktivasi NIM? Hubungi Helpdesk Akademik Gedung Rektorat Lt. 1.');
+
+      setTimeout(() => {
+        document.querySelectorAll('#formSiteConfig .auto-expand-textarea').forEach(autoResizeTextarea);
+      }, 50);
     }
   } catch (err) {
     console.error('Error load siteconfig admin:', err);

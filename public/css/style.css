@@ -1784,3 +1784,28 @@ body {
   box-shadow: var(--shadow-md);
 }
 
+/* Auto-Expand Textarea (Menyesuaikan Panjang Teks Tanpa Terpotong) */
+.auto-expand-textarea {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-family: inherit;
+  line-height: 1.5;
+  outline: none;
+  resize: none;
+  min-height: 42px;
+  overflow-y: hidden;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #f8fafc;
+  display: block;
+}
+
+.auto-expand-textarea:focus {
+  background: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
