@@ -387,6 +387,29 @@ async function openQuickStatusModal(studentId, studentName, portalKey, currentSt
 
   if (!formValues) return;
 
+  // 1. Optimistic Update Seketika: tabel langsung berubah detik itu juga
+  const student = allStudents.find((s) => s.id === studentId);
+  if (student && student.portals && student.portals[portalKey]) {
+    student.portals[portalKey].status = formValues.status;
+    student.portals[portalKey].catatanDosen = formValues.catatanDosen;
+  }
+  renderStudentTable();
+  updateStatsCounters();
+
+  // 2. Mini Toast Non-blocking (tidak ada modal popup besar yang memblokir layar)
+  const Toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 1500,
+    timerProgressBar: true,
+  });
+  Toast.fire({
+    icon: 'success',
+    title: `Status ${STATUS_META[formValues.status]?.label || formValues.status} terkirim real-time!`,
+  });
+
+  // 3. Kirim ke Server di background & broadcast via Socket.io
   try {
     const res = await fetch('/api/admin/verify', {
       method: 'POST',
@@ -402,32 +425,22 @@ async function openQuickStatusModal(studentId, studentName, portalKey, currentSt
     const data = await res.json();
 
     if (!res.ok) {
-      Swal.fire({
+      loadStudents(false); // rollback jika gagal
+      Toast.fire({
         icon: 'error',
-        title: 'Gagal Menyimpan',
-        text: data.message || 'Terjadi kesalahan saat menyimpan verifikasi.',
-        confirmButtonColor: '#0d2346'
+        title: data.message || 'Gagal menyimpan verifikasi.',
       });
       return;
     }
 
-    // Refresh table directly
+    // Refresh background data
     loadStudents(false);
-
-    Swal.fire({
-      icon: 'success',
-      title: 'Status Diperbarui!',
-      text: `Status ${portalTitle} untuk ${studentName} telah diubah menjadi ${formValues.status}. Progres langsung tampil di dashboard mahasiswa!`,
-      timer: 2200,
-      showConfirmButton: false
-    });
   } catch (err) {
     console.error(err);
-    Swal.fire({
+    loadStudents(false);
+    Toast.fire({
       icon: 'error',
-      title: 'Koneksi Gagal',
-      text: 'Tidak dapat menghubungi server.',
-      confirmButtonColor: '#0d2346'
+      title: 'Koneksi gagal ke server.',
     });
   }
 }
@@ -1303,12 +1316,16 @@ async function saveVerificationAction() {
     // Perbarui tabel direktori
     loadStudents(false);
 
-    Swal.fire({
+    const Toast = Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 1500,
+      timerProgressBar: true,
+    });
+    Toast.fire({
       icon: 'success',
-      title: 'Verifikasi Terkirim!',
-      text: 'Keputusan verifikasi telah tersimpan dan terkirim ke mahasiswa secara real-time.',
-      timer: 2000,
-      showConfirmButton: false
+      title: 'Keputusan verifikasi tersimpan & terkirim real-time!',
     });
 
     setTimeout(() => {
