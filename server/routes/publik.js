@@ -81,6 +81,7 @@ router.get("/mahasiswa", async (req, res) => {
       return {
         id: mhs.id, nim: mhs.nim, nama: mhs.nama, angkatan: mhs.angkatan,
         prodi: mhs.prodi, judulSkripsi: mhs.judulSkripsi, statusRingkas,
+        fotoProfil: mhs.fotoProfil,
         approvedCount, totalPortal: portalKeys.length,
         jadwalTerdekat: jadwalTerdekat ? { jenis: jadwalTerdekat.jenis, tanggal: jadwalTerdekat.tanggal, jam: jadwalTerdekat.jam, ruangan: jadwalTerdekat.ruangan } : null,
       };

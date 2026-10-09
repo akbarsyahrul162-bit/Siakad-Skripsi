@@ -278,13 +278,29 @@ function renderTable(students) {
       `;
     });
 
+    const initials = getStudentInitials(m.nama);
+    const hasPhoto = Boolean(m.fotoProfil);
+    const avatarHtml = hasPhoto
+      ? `<img src="${m.fotoProfil}" alt="${escapeHtml(m.nama)}" class="student-avatar-thumb" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid #60a5fa; box-shadow: 0 2px 5px rgba(0,0,0,0.12); display: block;">`
+      : `<div class="student-avatar-thumb" style="width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #1e3a8a, #2563eb); color: white; font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; border: 2px solid #93c5fd; box-shadow: 0 2px 5px rgba(0,0,0,0.12);">${initials}</div>`;
+
     html += `
       <tr>
         <td style="color: var(--text-muted); font-size: 0.8rem;">${idx + 1}</td>
         <td>
-          <div class="student-col-info">
-            <span class="s-name">${escapeHtml(m.nama)}</span>
-            <span class="s-meta">NIM: <strong>${escapeHtml(m.nim)}</strong></span>
+          <div style="display: flex; align-items: center; gap: 0.65rem;">
+            <div class="table-student-avatar-btn" 
+                 onclick="openStudentPhotoLightbox(${m.id})" 
+                 title="Klik untuk perbesar foto profil (${escapeHtml(m.nama)})">
+              ${avatarHtml}
+              <div class="avatar-zoom-pill" style="position: absolute; bottom: -2px; right: -2px; background: #2563eb; color: white; width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.48rem; border: 1.5px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">
+                <i class="fa-solid fa-magnifying-glass-plus"></i>
+              </div>
+            </div>
+            <div class="student-col-info">
+              <span class="s-name" style="cursor: pointer;" onclick="openStudentPhotoLightbox(${m.id})" title="Klik untuk lihat foto profil">${escapeHtml(m.nama)}</span>
+              <span class="s-meta">NIM: <strong>${escapeHtml(m.nim)}</strong></span>
+            </div>
           </div>
         </td>
         <td>
@@ -1929,6 +1945,7 @@ function renderDosenProfileNavbar(prof) {
   const avatarEl = document.getElementById('navAdminAvatar');
   const cfgNama = document.getElementById('cfg_dosen_nama');
   const cfgJabatan = document.getElementById('cfg_dosen_jabatan');
+  const cfgThumb = document.getElementById('cfgDosenAvatarThumb');
 
   if (nameEl && prof.nama) nameEl.textContent = prof.nama;
   if (roleEl && prof.jabatan) roleEl.textContent = prof.jabatan;
@@ -1940,6 +1957,14 @@ function renderDosenProfileNavbar(prof) {
       avatarEl.innerHTML = `<img src="${prof.foto}" alt="${escapeHtml(prof.nama)}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
     } else {
       avatarEl.textContent = getDosenInitials(prof.nama);
+    }
+  }
+
+  if (cfgThumb) {
+    if (prof.foto) {
+      cfgThumb.innerHTML = `<img src="${prof.foto}" alt="${escapeHtml(prof.nama)}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+    } else {
+      cfgThumb.textContent = getDosenInitials(prof.nama);
     }
   }
 }
@@ -1966,11 +1991,11 @@ function openDosenProfileModal() {
   if (nameInput) nameInput.value = currentDosenProfile.nama || '';
   if (jabatanInput) jabatanInput.value = currentDosenProfile.jabatan || '';
 
-  pendingDosenPhotoBase64 = currentDosenProfile.foto || null;
+  pendingDosenPhotoBase64 = null;
   const previewEl = document.getElementById('modalDosenAvatarPreview');
   if (previewEl) {
-    if (pendingDosenPhotoBase64) {
-      previewEl.innerHTML = `<img src="${pendingDosenPhotoBase64}" alt="Foto Profil" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+    if (currentDosenProfile.foto) {
+      previewEl.innerHTML = `<img src="${currentDosenProfile.foto}" alt="Foto Profil" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
     } else {
       previewEl.textContent = getDosenInitials(currentDosenProfile.nama);
     }
@@ -1987,6 +2012,19 @@ function closeDosenProfileModal() {
   const modal = document.getElementById('dosenProfileModal');
   if (modal) modal.style.display = 'none';
   pendingDosenPhotoBase64 = null;
+  const fileInput = document.getElementById('inputDosenFoto');
+  if (fileInput) fileInput.value = '';
+}
+
+function handleRemoveDosenPhoto() {
+  pendingDosenPhotoBase64 = ''; // Tanda string kosong = hapus foto
+  const previewEl = document.getElementById('modalDosenAvatarPreview');
+  const nameInput = document.getElementById('inputDosenNama');
+  const nama = (nameInput && nameInput.value.trim()) || currentDosenProfile.nama;
+  if (previewEl) {
+    previewEl.innerHTML = '';
+    previewEl.textContent = getDosenInitials(nama);
+  }
   const fileInput = document.getElementById('inputDosenFoto');
   if (fileInput) fileInput.value = '';
 }
@@ -2050,14 +2088,20 @@ async function handleSaveDosenProfile(e) {
     return;
   }
 
+  // Tentukan foto yang akan disimpan SEBELUM modal ditutup
+  let fotoToSave = currentDosenProfile.foto || null;
+  if (pendingDosenPhotoBase64 === '') {
+    fotoToSave = null; // Pengguna menghapus foto
+  } else if (pendingDosenPhotoBase64 !== null) {
+    fotoToSave = pendingDosenPhotoBase64; // Pengguna memilih foto baru
+  }
+
   const prevProfile = { ...currentDosenProfile };
 
-  // Optimistic Instant Update di Navbar
+  // Optimistic Instant Update di Navbar & State
   currentDosenProfile.nama = nama;
   currentDosenProfile.jabatan = jabatan;
-  if (pendingDosenPhotoBase64 !== null) {
-    currentDosenProfile.foto = pendingDosenPhotoBase64;
-  }
+  currentDosenProfile.foto = fotoToSave;
   renderDosenProfileNavbar(currentDosenProfile);
 
   // Tutup modal seketika
@@ -2086,7 +2130,7 @@ async function handleSaveDosenProfile(e) {
       body: JSON.stringify({
         nama,
         jabatan,
-        foto: pendingDosenPhotoBase64,
+        foto: fotoToSave,
       }),
     });
 
@@ -2117,6 +2161,90 @@ async function handleSaveDosenProfile(e) {
     });
   }
 }
+
+// ══════════════════════════════════════════════════════════════
+// WHATSAPP-STYLE STUDENT PHOTO LIGHTBOX MODAL
+// ══════════════════════════════════════════════════════════════
+function getStudentInitials(nama) {
+  if (!nama) return 'M';
+  const clean = nama.replace(/^(Sdr\.|Sdri\.|Mhs\.)\s*/gi, '').trim();
+  const words = clean.split(/\s+/).filter((w) => w && !w.includes('.') && w.match(/[A-Za-z]/));
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  } else if (words.length === 1) {
+    return words[0].slice(0, 2).toUpperCase();
+  }
+  return 'M';
+}
+
+function openStudentPhotoLightbox(studentId) {
+  const m = allStudents.find((s) => s.id === studentId);
+  if (!m) return;
+
+  const modal = document.getElementById('studentPhotoModal');
+  const nameEl = document.getElementById('waModalStudentName');
+  const metaEl = document.getElementById('waModalStudentMeta');
+  const container = document.getElementById('waModalPhotoContainer');
+  const statusEl = document.getElementById('waModalPhotoStatus');
+  const btnBerkas = document.getElementById('waBtnPeriksaBerkas');
+  const btnEdit = document.getElementById('waBtnEditMhs');
+
+  if (!modal || !nameEl || !metaEl || !container) return;
+
+  nameEl.textContent = m.nama;
+  metaEl.textContent = `NIM: ${m.nim} • Angkatan ${m.angkatan || '-'} • ${m.prodi || 'Psikologi'}`;
+
+  if (m.fotoProfil) {
+    container.innerHTML = `
+      <img src="${m.fotoProfil}" alt="${escapeHtml(m.nama)}" style="width: 100%; height: 100%; object-fit: contain; display: block; animation: waPopupFadeIn 0.22s ease;">
+    `;
+    if (statusEl) {
+      statusEl.innerHTML = `<span style="color: #4ade80;"><i class="fa-solid fa-circle-check"></i> Foto Profil Mahasiswa</span>`;
+    }
+  } else {
+    const initials = getStudentInitials(m.nama);
+    container.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2.5rem 1.5rem; gap: 1rem; animation: waPopupFadeIn 0.22s ease;">
+        <div style="width: 110px; height: 110px; border-radius: 50%; background: linear-gradient(135deg, #1e3a8a, #2563eb); color: white; display: flex; align-items: center; justify-content: center; font-size: 2.8rem; font-weight: 800; border: 3px solid #60a5fa; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+          ${initials}
+        </div>
+        <div style="color: #94a3b8; font-size: 0.85rem; max-width: 270px; line-height: 1.4;">
+          Mahasiswa ini belum mengunggah foto profil di akun portal mahasiswa.
+        </div>
+      </div>
+    `;
+    if (statusEl) {
+      statusEl.innerHTML = `<span style="color: #facc15;"><i class="fa-solid fa-circle-info"></i> Belum Ada Foto</span>`;
+    }
+  }
+
+  if (btnBerkas) {
+    btnBerkas.onclick = () => {
+      closeStudentPhotoLightbox();
+      openVerificationModal(m.id);
+    };
+  }
+  if (btnEdit) {
+    btnEdit.onclick = () => {
+      closeStudentPhotoLightbox();
+      openEditStudentModal(m.id);
+    };
+  }
+
+  modal.style.display = 'flex';
+}
+
+function closeStudentPhotoLightbox() {
+  const modal = document.getElementById('studentPhotoModal');
+  if (modal) modal.style.display = 'none';
+}
+
+// Tutup modal WA jika pengguna menekan tombol Escape (ESC)
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeStudentPhotoLightbox();
+  }
+});
 
 // ══════════════════════════════════════════════════════════════
 // LIVE POV (POINT OF VIEW) CONTROLLER

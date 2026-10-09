@@ -42,6 +42,7 @@ router.get('/mahasiswa', async (req, res) => {
         angkatan: mhs.angkatan,
         prodi: mhs.prodi,
         judulSkripsi: mhs.judulSkripsi,
+        fotoProfil: mhs.fotoProfil,
         createdAt: mhs.createdAt,
         portals,
       };
@@ -246,6 +247,7 @@ router.get('/mahasiswa/:id/berkas', async (req, res) => {
         angkatan: mhs.angkatan,
         prodi: mhs.prodi,
         judulSkripsi: mhs.judulSkripsi,
+        fotoProfil: mhs.fotoProfil,
       },
       portals,
     });
@@ -736,14 +738,20 @@ router.put('/profile', async (req, res) => {
     const { nama, jabatan, foto } = req.body;
 
     const updates = [];
-    if (nama !== undefined) {
+    if (nama !== undefined && nama !== null) {
       updates.push(prisma.siteConfig.upsert({
         where: { key: 'dosen_nama' },
         update: { value: String(nama) },
         create: { key: 'dosen_nama', value: String(nama) },
       }));
+      if (req.user?.id) {
+        updates.push(prisma.admin.update({
+          where: { id: req.user.id },
+          data: { nama: String(nama) },
+        }).catch(() => null));
+      }
     }
-    if (jabatan !== undefined) {
+    if (jabatan !== undefined && jabatan !== null) {
       updates.push(prisma.siteConfig.upsert({
         where: { key: 'dosen_jabatan' },
         update: { value: String(jabatan) },
@@ -760,19 +768,29 @@ router.put('/profile', async (req, res) => {
 
     await Promise.all(updates);
 
+    // Ambil profil paling mutakhir dari database
+    const keys = ['dosen_nama', 'dosen_jabatan', 'dosen_foto'];
+    const configs = await prisma.siteConfig.findMany({
+      where: { key: { in: keys } },
+    });
+    const map = {};
+    configs.forEach((c) => { map[c.key] = c.value; });
+
+    const updatedProfile = {
+      nama: map['dosen_nama'] || 'Dr. Ir. Fitrah, M.T.',
+      jabatan: map['dosen_jabatan'] || 'Dosen Pembimbing Skripsi',
+      foto: map['dosen_foto'] || null,
+    };
+
     const io = req.app.get('io');
     if (io) {
-      io.emit('dosen_profile_updated', {
-        nama,
-        jabatan,
-        foto,
-      });
+      io.emit('dosen_profile_updated', updatedProfile);
     }
 
     return res.json({
       success: true,
       message: 'Profil dosen berhasil diperbarui!',
-      profile: { nama, jabatan, foto },
+      profile: updatedProfile,
     });
   } catch (error) {
     console.error('Error update admin profile:', error);
