@@ -132,15 +132,45 @@ router.get("/mahasiswa", async (req, res) => {
   }
 });
 
+async function getPublicJadwalTypes() {
+  const DEFAULT_TYPES = [
+    { id: 'SEMPRO', nama: 'Seminar Proposal (Sempro)', badgeColor: '#0369a1', badgeBg: '#e0f2fe' },
+    { id: 'SEMHAS', nama: 'Seminar Hasil (Semhas)', badgeColor: '#b45309', badgeBg: '#fef3c7' },
+    { id: 'SIDANG', nama: 'Sidang Skripsi / Ujian Tutup', badgeColor: '#15803d', badgeBg: '#dcfce7' },
+    { id: 'WISUDA', nama: 'Wisuda Sarjana & Yudisium', badgeColor: '#7e22ce', badgeBg: '#f3e8ff' },
+  ];
+  try {
+    const cfg = await prisma.siteConfig.findUnique({ where: { key: 'JADWAL_TYPES' } });
+    if (cfg && cfg.value) {
+      const parsed = JSON.parse(cfg.value);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (_) {}
+  return DEFAULT_TYPES;
+}
+
+router.get("/jadwal/types", async (req, res) => {
+  try {
+    const types = await getPublicJadwalTypes();
+    return res.json({ success: true, types });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Gagal mengambil opsi jadwal." });
+  }
+});
+
 router.get("/jadwal", async (req, res) => {
   try {
-    const jadwalList = await prisma.jadwalUjian.findMany({
-      where: { status: "TERJADWAL", tanggal: { gte: new Date(new Date().setHours(0,0,0,0)) } },
-      include: { mahasiswa: { select: { id: true, nim: true, nama: true, prodi: true, angkatan: true } } },
-      orderBy: { tanggal: "asc" },
-      take: 20,
-    });
-    return res.json({ success: true, jadwal: jadwalList });
+    const [jadwalList, types] = await Promise.all([
+      prisma.jadwalUjian.findMany({
+        where: { status: "TERJADWAL", tanggal: { gte: new Date(new Date().setHours(0,0,0,0)) } },
+        include: { mahasiswa: { select: { id: true, nim: true, nama: true, prodi: true, angkatan: true } } },
+        orderBy: { tanggal: "asc" },
+        take: 25,
+      }),
+      getPublicJadwalTypes(),
+    ]);
+
+    return res.json({ success: true, jadwal: jadwalList, types });
   } catch (error) {
     console.error("Error get jadwal publik:", error);
     return res.status(500).json({ success: false, message: "Gagal memuat jadwal ujian." });

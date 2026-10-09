@@ -4,6 +4,7 @@
 
 let allStudents = [];
 let allJadwal = [];
+let globalJadwalTypesMap = {};
 
 document.addEventListener('DOMContentLoaded', () => {
   loadSiteConfig();
@@ -148,14 +149,20 @@ function renderStudentTable(students) {
     if (m.jadwalTerdekat) {
       const j = m.jadwalTerdekat;
       const tgl = new Date(j.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+      const typeObj = globalJadwalTypesMap[j.jenis];
+      const typeName = typeObj ? typeObj.nama : j.jenis;
+      const badgeStyle = typeObj && typeObj.badgeColor
+        ? `background: ${typeObj.badgeBg || '#e0f2fe'}; color: ${typeObj.badgeColor || '#0369a1'}; border: 1px solid rgba(0,0,0,0.08);`
+        : '';
+      const iconHtml = j.jenis === 'WISUDA' ? '<i class="fa-solid fa-graduation-cap" style="margin-right: 2px;"></i>' : '';
       jadwalHtml = `
         <div style="font-size: 0.78rem;">
-          <span class="badge-exam badge-exam-${j.jenis}">${j.jenis}</span>
+          <span class="badge-exam badge-exam-${j.jenis}" style="${badgeStyle}">${iconHtml}${escapeHtml(typeName)}</span>
           <div style="font-weight: 600; color: var(--primary-navy); margin-top: 0.2rem;">
-            <i class="fa-regular fa-calendar" style="font-size: 0.7rem;"></i> ${tgl} • ${j.jam}
+            <i class="fa-regular fa-calendar" style="font-size: 0.7rem;"></i> ${tgl} • ${escapeHtml(j.jam)}
           </div>
           <div style="color: var(--text-muted); font-size: 0.72rem;">
-            <i class="fa-solid fa-door-open" style="font-size: 0.7rem;"></i> ${j.ruangan}
+            <i class="fa-solid fa-door-open" style="font-size: 0.7rem;"></i> ${escapeHtml(j.ruangan)}
           </div>
         </div>
       `;
@@ -204,6 +211,12 @@ async function loadJadwalData() {
     const res = await fetch('/api/publik/jadwal');
     const data = await res.json();
     if (data.success) {
+      if (data.types && Array.isArray(data.types)) {
+        globalJadwalTypesMap = {};
+        data.types.forEach((t) => {
+          globalJadwalTypesMap[t.id] = t;
+        });
+      }
       allJadwal = data.jadwal || [];
       renderJadwalList(allJadwal);
     }
@@ -235,6 +248,12 @@ function renderJadwalList(jadwalList) {
   container.innerHTML = jadwalList.map((j) => {
     const tgl = new Date(j.tanggal).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     const initial = (j.mahasiswa?.nama || 'M').charAt(0).toUpperCase();
+    const typeObj = globalJadwalTypesMap[j.jenis];
+    const typeName = typeObj ? typeObj.nama : j.jenis;
+    const badgeStyle = typeObj && typeObj.badgeColor
+      ? `background: ${typeObj.badgeBg || '#e0f2fe'}; color: ${typeObj.badgeColor || '#0369a1'}; border: 1px solid rgba(0,0,0,0.08);`
+      : '';
+    const iconHtml = j.jenis === 'WISUDA' ? '<i class="fa-solid fa-graduation-cap" style="margin-right: 2px;"></i>' : '';
 
     return `
       <div class="jadwal-card">
@@ -244,9 +263,11 @@ function renderJadwalList(jadwalList) {
           </div>
           <div>
             <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem;">
-              <span class="badge-exam badge-exam-${j.jenis}">${j.jenis}</span>
+              <span class="badge-exam badge-exam-${j.jenis}" style="${badgeStyle}">
+                ${iconHtml}${escapeHtml(typeName)}
+              </span>
               <span style="font-size: 0.72rem; color: #10b981; font-weight: 700; background: #ecfdf5; padding: 0.15rem 0.45rem; border-radius: 4px;">
-                ${j.status}
+                ${escapeHtml(j.status)}
               </span>
             </div>
             <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--primary-navy); margin-bottom: 0.15rem;">
@@ -310,6 +331,7 @@ function initRealtimeSync() {
   socket.on('status_verified', debouncedRefresh);
   socket.on('mahasiswa_title_updated', debouncedRefresh);
   socket.on('jadwal_updated', debouncedRefresh);
+  socket.on('jadwal_types_updated', debouncedRefresh);
   socket.on('siteconfig_updated', debouncedRefresh);
   socket.on('siteconfig_bulk_updated', debouncedRefresh);
   socket.on('portals_config_updated', debouncedRefresh);

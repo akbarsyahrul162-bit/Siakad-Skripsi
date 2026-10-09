@@ -175,16 +175,26 @@
           <div>
             <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--primary-navy);">
               <i class="fa-regular fa-calendar-check" style="color: var(--primary-blue); margin-right: 0.4rem;"></i>
-              Daftar Jadwal Ujian Mahasiswa
+              Daftar Jadwal Ujian & Wisuda Mahasiswa
             </h3>
             <span style="font-size: 0.78rem; color: var(--text-muted);">
-              Admin dapat menjadwalkan Sempro, Semhas, dan Sidang Skripsi yang langsung tayang di beranda publik.
+              Admin dapat menjadwalkan Sempro, Semhas, Sidang Skripsi, hingga Wisuda yang otomatis tersinkronisasi ke beranda.
             </span>
           </div>
-          <button class="btn-add-student" onclick="openAddJadwalModal()">
-            <i class="fa-solid fa-calendar-plus"></i>
-            <span>Tambah Jadwal Ujian</span>
-          </button>
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <button class="btn-manage-options" onclick="openManageJadwalTypesModal()" style="padding: 0.55rem 0.95rem; font-size: 0.82rem; font-weight: 600; background: white; color: #1e3a8a; border: 1.5px solid #bfdbfe; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.2s ease;" title="Edit teks narasi opsi jadwal atau tambah opsi baru">
+              <i class="fa-solid fa-sliders"></i>
+              <span>Kelola Opsi Pilihan</span>
+            </button>
+            <button class="btn-add-wisuda" onclick="openAddJadwalModal('WISUDA')" style="padding: 0.55rem 1.05rem; font-size: 0.85rem; font-weight: 700; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: white; border: none; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25); transition: all 0.2s ease;">
+              <i class="fa-solid fa-graduation-cap"></i>
+              <span>Jadwal Wisuda</span>
+            </button>
+            <button class="btn-add-student" onclick="openAddJadwalModal()">
+              <i class="fa-solid fa-calendar-plus"></i>
+              <span>Tambah Jadwal Ujian</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -822,11 +832,17 @@
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
             <div class="form-group">
-              <label for="jadwalJenisSelect">Tahapan / Jenis Ujian *</label>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+                <label for="jadwalJenisSelect" style="margin-bottom: 0; font-size: 0.82rem; font-weight: 700; color: var(--primary-navy);">Tahapan / Jenis Jadwal *</label>
+                <button type="button" onclick="openManageJadwalTypesModal()" style="background: none; border: none; color: #2563eb; font-size: 0.74rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.25rem; padding: 0;" title="Edit teks narasi opsi atau tambah opsi baru">
+                  <i class="fa-solid fa-pen-to-square"></i> Edit Opsi
+                </button>
+              </div>
               <select id="jadwalJenisSelect" class="input-portal-single" required style="padding-left: 1rem;">
                 <option value="SEMPRO">Seminar Proposal (Sempro)</option>
                 <option value="SEMHAS">Seminar Hasil (Semhas)</option>
                 <option value="SIDANG">Sidang Skripsi / Ujian Tutup</option>
+                <option value="WISUDA">Wisuda Sarjana & Yudisium</option>
               </select>
             </div>
 
@@ -981,12 +997,42 @@
     </div>
   </div>
 
+  <!-- MODAL: Kelola & Edit Narasi Opsi Pilihan Jadwal -->
+  <div class="modal-overlay" id="manageJadwalTypesModal" style="display: none; z-index: 1250;" onclick="if(event.target === this) closeManageJadwalTypesModal()">
+    <div class="modal-container" style="max-width: 580px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-sliders"></i> Kelola & Edit Opsi Pilihan Jadwal</h3>
+        <button class="btn-close-modal" onclick="closeManageJadwalTypesModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1.5rem;">
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.85rem; margin-bottom: 1.25rem; font-size: 0.78rem; color: #1e40af; line-height: 1.45;">
+          <i class="fa-solid fa-circle-info" style="color: #2563eb; margin-right: 0.35rem;"></i>
+          <strong>Petunjuk Narasi Opsi:</strong> Anda dapat mengubah teks narasi setiap opsi jika terdapat salah ketik atau penyesuaian istilah akademik. Opsi baru seperti Wisuda atau ujian khusus lainnya juga dapat ditambahkan.
+        </div>
+
+        <div id="jadwalTypesListContainer" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 360px; overflow-y: auto; padding-right: 0.25rem;">
+          <!-- Item opsi yang bisa diedit akan dirender secara dinamis via JS -->
+        </div>
+
+        <button type="button" class="btn-hero-secondary" onclick="addNewJadwalTypeRow()" style="margin-top: 1rem; width: 100%; justify-content: center; font-size: 0.82rem; padding: 0.6rem; border-style: dashed; border-color: #93c5fd; color: #1e3a8a;">
+          <i class="fa-solid fa-plus"></i> Tambah Opsi Pilihan Baru
+        </button>
+      </div>
+      <div class="modal-footer" style="padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button type="button" class="btn-hero-secondary" style="color: #475569; border-color: #cbd5e1; padding: 0.6rem 1.25rem; font-size: 0.85rem;" onclick="closeManageJadwalTypesModal()">Batal</button>
+        <button type="button" class="btn-primary" style="width: auto; padding: 0.6rem 1.5rem; font-size: 0.85rem;" id="btnSaveJadwalTypes" onclick="handleSaveJadwalTypes()">
+          <i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan Opsi
+        </button>
+      </div>
+    </div>
+  </div>
+
   <footer class="academic-footer">
     Sistem Informasi Manajemen Skripsi & Verifikasi Berkas Terpadu • Universitas Bosowa Style
   </footer>
 
   <!-- Socket.io Client (CDN fallback for Serverless) -->
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  <script src="/js/admin.js?v=2.3"></script>
+  <script src="/js/admin.js?v=2.4"></script>
 </body>
 </html>

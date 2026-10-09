@@ -107,6 +107,20 @@ function initSocket() {
         renderRequirementsEditor();
       }
     });
+
+    // Real-Time Listener: Saat opsi jenis jadwal / wisuda diubah atau diedit
+    socket.on('jadwal_types_updated', (data) => {
+      if (data && Array.isArray(data.types)) {
+        globalJadwalTypes = data.types;
+        rebuildJadwalTypesMap();
+        populateJadwalJenisDropdown();
+        renderJadwalTable(allJadwalList);
+        const modal = document.getElementById('manageJadwalTypesModal');
+        if (modal && modal.style.display === 'flex') {
+          renderJadwalTypesEditor();
+        }
+      }
+    });
   } catch (err) {
     console.error('Socket error:', err);
   }
@@ -1434,9 +1448,39 @@ function switchAdminTab(tabName) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// MANAJEMEN JADWAL UJIAN
+// MANAJEMEN JADWAL UJIAN & WISUDA
 // ══════════════════════════════════════════════════════════════
 let allJadwalList = [];
+let globalJadwalTypes = [
+  { id: 'SEMPRO', nama: 'Seminar Proposal (Sempro)', badgeColor: '#0369a1', badgeBg: '#e0f2fe' },
+  { id: 'SEMHAS', nama: 'Seminar Hasil (Semhas)', badgeColor: '#b45309', badgeBg: '#fef3c7' },
+  { id: 'SIDANG', nama: 'Sidang Skripsi / Ujian Tutup', badgeColor: '#15803d', badgeBg: '#dcfce7' },
+  { id: 'WISUDA', nama: 'Wisuda Sarjana & Yudisium', badgeColor: '#7e22ce', badgeBg: '#f3e8ff' },
+];
+let globalJadwalTypesMap = {};
+
+function rebuildJadwalTypesMap() {
+  globalJadwalTypesMap = {};
+  globalJadwalTypes.forEach((t) => {
+    globalJadwalTypesMap[t.id] = t;
+  });
+}
+rebuildJadwalTypesMap();
+
+function populateJadwalJenisDropdown(selectedVal = null) {
+  const select = document.getElementById('jadwalJenisSelect');
+  if (!select) return;
+
+  const currentVal = selectedVal || select.value;
+  select.innerHTML = globalJadwalTypes.map((t) => {
+    const isSel = (t.id === currentVal) ? 'selected' : '';
+    return `<option value="${t.id}" ${isSel}>${escapeHtml(t.nama)}</option>`;
+  }).join('');
+
+  if (selectedVal) {
+    select.value = selectedVal;
+  }
+}
 
 // Populate Dropdown Mahasiswa di Modal Jadwal
 function populateJadwalMhsDropdown(selectedId = null) {
@@ -1462,7 +1506,7 @@ async function loadJadwalAdmin(showLoading = true) {
     tbody.innerHTML = `
       <tr>
         <td colspan="8" style="text-align: center; padding: 3rem; color: var(--text-muted);">
-          <i class="fa-solid fa-spinner fa-spin"></i> Memuat jadwal ujian...
+          <i class="fa-solid fa-spinner fa-spin"></i> Memuat jadwal ujian & wisuda...
         </td>
       </tr>
     `;
@@ -1480,6 +1524,11 @@ async function loadJadwalAdmin(showLoading = true) {
 
     const data = await res.json();
     if (data.success) {
+      if (Array.isArray(data.types) && data.types.length > 0) {
+        globalJadwalTypes = data.types;
+        rebuildJadwalTypesMap();
+      }
+      populateJadwalJenisDropdown();
       allJadwalList = data.jadwal || [];
       renderJadwalTable(allJadwalList);
       populateJadwalMhsDropdown();
@@ -1502,7 +1551,7 @@ function renderJadwalTable(jadwalList) {
       <tr>
         <td colspan="8" style="text-align: center; padding: 3rem; color: var(--text-muted);">
           <i class="fa-regular fa-calendar-xmark fa-2x" style="margin-bottom: 0.5rem; display: block; opacity: 0.4;"></i>
-          Belum ada jadwal ujian yang ditambahkan. Klik tombol "Tambah Jadwal Ujian" di atas untuk membuat jadwal baru.
+          Belum ada agenda jadwal yang ditambahkan. Klik tombol "Tambah Jadwal Ujian" atau "Jadwal Wisuda" di atas untuk membuat jadwal baru.
         </td>
       </tr>
     `;
@@ -1521,6 +1570,12 @@ function renderJadwalTable(jadwalList) {
     if (j.status === 'SELESAI') statusBadgeCls = 'badge-APPROVED';
     if (j.status === 'BATAL') statusBadgeCls = 'badge-REVISION';
 
+    const typeObj = globalJadwalTypesMap[j.jenis];
+    const typeName = typeObj ? typeObj.nama : j.jenis;
+    const badgeStyle = typeObj && typeObj.badgeColor
+      ? `background: ${typeObj.badgeBg || '#e0f2fe'}; color: ${typeObj.badgeColor || '#0369a1'}; border: 1px solid rgba(0,0,0,0.08);`
+      : '';
+
     return `
       <tr>
         <td style="text-align: center; font-weight: 600; color: #64748b;">${idx + 1}</td>
@@ -1533,7 +1588,10 @@ function renderJadwalTable(jadwalList) {
           </div>
         </td>
         <td>
-          <span class="badge-exam badge-exam-${j.jenis}">${j.jenis}</span>
+          <span class="badge-exam badge-exam-${j.jenis}" style="${badgeStyle}">
+            ${j.jenis === 'WISUDA' ? '<i class="fa-solid fa-graduation-cap" style="margin-right: 2px;"></i>' : ''}
+            ${escapeHtml(typeName)}
+          </span>
         </td>
         <td>
           <div style="font-weight: 600; color: var(--primary-navy); font-size: 0.85rem;">${tgl}</div>
@@ -1565,14 +1623,12 @@ function renderJadwalTable(jadwalList) {
   }).join('');
 }
 
-// Buka Modal Tambah Jadwal
-function openAddJadwalModal() {
+// Buka Modal Tambah Jadwal (Mendukung Wisuda & Jenis Ujian Lainnya)
+function openAddJadwalModal(defaultJenis = null) {
   const form = document.getElementById('formJadwal');
   if (form) form.reset();
 
   const title = document.getElementById('jadwalModalTitle');
-  if (title) title.innerHTML = `<i class="fa-regular fa-calendar-plus"></i> Tambah Jadwal Ujian`;
-
   const editId = document.getElementById('jadwalEditId');
   if (editId) editId.value = '';
 
@@ -1580,6 +1636,23 @@ function openAddJadwalModal() {
   if (selectMhs) selectMhs.disabled = false;
 
   populateJadwalMhsDropdown();
+  populateJadwalJenisDropdown(defaultJenis || (globalJadwalTypes[0] ? globalJadwalTypes[0].id : 'SEMPRO'));
+
+  const inputRuangan = document.getElementById('jadwalRuanganInput');
+  const inputJam = document.getElementById('jadwalJamInput');
+  const inputCatatan = document.getElementById('jadwalCatatanInput');
+
+  if (defaultJenis === 'WISUDA') {
+    if (title) title.innerHTML = `<i class="fa-solid fa-graduation-cap" style="color: #a855f7;"></i> Penjadwalan Wisuda Mahasiswa`;
+    if (inputRuangan) inputRuangan.placeholder = 'Contoh: Balai Sidang 45 Universitas Bosowa / Auditorium Phinisi';
+    if (inputJam) inputJam.placeholder = 'Contoh: 08:00 - Selesai WITA';
+    if (inputCatatan) inputCatatan.placeholder = 'Contoh: Mahasiswa wajib hadir 30 menit sebelum gladi bersih & mengenakan toga.';
+  } else {
+    if (title) title.innerHTML = `<i class="fa-regular fa-calendar-plus"></i> Tambah Jadwal Ujian`;
+    if (inputRuangan) inputRuangan.placeholder = 'Contoh: Ruang Sidang Psikologi Gedung B Lt. 2';
+    if (inputJam) inputJam.placeholder = 'Contoh: 09:00 - 11:00 WITA';
+    if (inputCatatan) inputCatatan.placeholder = 'Contoh: Membawa naskah fisik rangkap 4.';
+  }
 
   const modal = document.getElementById('jadwalModal');
   if (modal) modal.style.display = 'flex';
@@ -1590,8 +1663,13 @@ function openEditJadwalModal(id) {
   const j = allJadwalList.find((item) => item.id === id);
   if (!j) return;
 
+  const isWisuda = (j.jenis === 'WISUDA');
   const title = document.getElementById('jadwalModalTitle');
-  if (title) title.innerHTML = `<i class="fa-solid fa-calendar-check"></i> Edit Jadwal Ujian`;
+  if (title) {
+    title.innerHTML = isWisuda
+      ? `<i class="fa-solid fa-graduation-cap" style="color: #a855f7;"></i> Edit Jadwal Wisuda`
+      : `<i class="fa-solid fa-calendar-check"></i> Edit Jadwal Ujian`;
+  }
 
   const editId = document.getElementById('jadwalEditId');
   if (editId) editId.value = j.id;
@@ -1601,8 +1679,7 @@ function openEditJadwalModal(id) {
   const selectMhs = document.getElementById('jadwalMhsSelect');
   if (selectMhs) selectMhs.disabled = true;
 
-  const selectJenis = document.getElementById('jadwalJenisSelect');
-  if (selectJenis) selectJenis.value = j.jenis;
+  populateJadwalJenisDropdown(j.jenis);
 
   const selectStatus = document.getElementById('jadwalStatusSelect');
   if (selectStatus) selectStatus.value = j.status;
@@ -1629,6 +1706,225 @@ function openEditJadwalModal(id) {
 function closeJadwalModal() {
   const modal = document.getElementById('jadwalModal');
   if (modal) modal.style.display = 'none';
+}
+
+// ══════════════════════════════════════════════════════════════
+// KELOLA & EDIT OPSI PILIHAN JADWAL & WISUDA
+// ══════════════════════════════════════════════════════════════
+let workingJadwalTypes = [];
+
+function openManageJadwalTypesModal() {
+  workingJadwalTypes = JSON.parse(JSON.stringify(globalJadwalTypes));
+  renderJadwalTypesEditor();
+  const modal = document.getElementById('manageJadwalTypesModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeManageJadwalTypesModal() {
+  const modal = document.getElementById('manageJadwalTypesModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function renderJadwalTypesEditor() {
+  const container = document.getElementById('jadwalTypesListContainer');
+  if (!container) return;
+
+  const colorPresets = [
+    { key: 'blue', label: 'Biru (Sempro)', badgeColor: '#0369a1', badgeBg: '#e0f2fe' },
+    { key: 'amber', label: 'Kuning Amber (Semhas)', badgeColor: '#b45309', badgeBg: '#fef3c7' },
+    { key: 'green', label: 'Hijau (Sidang)', badgeColor: '#15803d', badgeBg: '#dcfce7' },
+    { key: 'purple', label: 'Ungu (Wisuda)', badgeColor: '#7e22ce', badgeBg: '#f3e8ff' },
+    { key: 'rose', label: 'Merah Muda', badgeColor: '#be123c', badgeBg: '#ffe4e6' },
+  ];
+
+  container.innerHTML = workingJadwalTypes.map((t, idx) => {
+    const colorOpts = colorPresets.map((c) => {
+      const isSel = (c.badgeColor === t.badgeColor) ? 'selected' : '';
+      return `<option value="${c.key}" data-color="${c.badgeColor}" data-bg="${c.badgeBg}" ${isSel}>${c.label}</option>`;
+    }).join('');
+
+    return `
+      <div class="jadwal-type-item" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.85rem; display: flex; flex-direction: column; gap: 0.6rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-family: monospace; font-weight: 800; font-size: 0.78rem; background: #07152b; color: #93c5fd; padding: 0.2rem 0.55rem; border-radius: 5px; letter-spacing: 0.5px;">
+              ${escapeHtml(t.id)}
+            </span>
+            <span style="font-size: 0.75rem; color: #64748b;">(Opsi ${idx + 1})</span>
+          </div>
+          <button type="button" onclick="removeJadwalTypeRow(${idx})" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.78rem; font-weight: 600; padding: 0.2rem 0.4rem; display: inline-flex; align-items: center; gap: 0.25rem; border-radius: 4px;" title="Hapus opsi ini" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'">
+            <i class="fa-solid fa-trash-can"></i> Hapus
+          </button>
+        </div>
+
+        <div>
+          <label style="font-size: 0.75rem; font-weight: 700; color: var(--primary-navy); margin-bottom: 0.25rem; display: block;">
+            Teks Narasi / Label Pilihan:
+          </label>
+          <input type="text" class="input-portal-single" id="jtype_nama_${idx}" value="${escapeHtml(t.nama)}" placeholder="Contoh: Seminar Proposal (Sempro)" style="font-size: 0.85rem; padding: 0.5rem 0.75rem; background: #f8fafc; font-weight: 600;" oninput="syncJadwalTypeNama(${idx}, this.value)">
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <span style="font-size: 0.73rem; color: #64748b; font-weight: 600;">Warna Badge:</span>
+            <select class="input-portal-single" style="font-size: 0.75rem; padding: 0.3rem 0.6rem; width: auto;" onchange="updateJadwalTypeColor(${idx}, this)">
+              ${colorOpts}
+            </select>
+          </div>
+          <span class="badge-exam" id="jtype_preview_${idx}" style="background: ${t.badgeBg || '#e0f2fe'}; color: ${t.badgeColor || '#0369a1'}; border: 1px solid rgba(0,0,0,0.08);">
+            ${escapeHtml(t.nama || t.id)}
+          </span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function syncJadwalTypeNama(idx, val) {
+  if (workingJadwalTypes[idx]) {
+    workingJadwalTypes[idx].nama = val;
+    const preview = document.getElementById(`jtype_preview_${idx}`);
+    if (preview) {
+      preview.textContent = val || workingJadwalTypes[idx].id;
+    }
+  }
+}
+
+function updateJadwalTypeColor(idx, selectEl) {
+  const selectedOpt = selectEl.options[selectEl.selectedIndex];
+  if (!selectedOpt || !workingJadwalTypes[idx]) return;
+  const color = selectedOpt.getAttribute('data-color');
+  const bg = selectedOpt.getAttribute('data-bg');
+  workingJadwalTypes[idx].badgeColor = color;
+  workingJadwalTypes[idx].badgeBg = bg;
+  const preview = document.getElementById(`jtype_preview_${idx}`);
+  if (preview) {
+    preview.style.background = bg;
+    preview.style.color = color;
+  }
+}
+
+function addNewJadwalTypeRow() {
+  Swal.fire({
+    title: 'Tambah Opsi Jadwal Baru',
+    html: `
+      <div style="text-align: left; display: flex; flex-direction: column; gap: 0.75rem; padding: 0.5rem 0;">
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 700; color: #1e3a8a; display: block; margin-bottom: 0.25rem;">Kode Singkat (HURUF BESAR, tanpa spasi):</label>
+          <input type="text" id="swalNewTypeCode" class="swal2-input" placeholder="Contoh: YUDISIUM" style="margin: 0; width: 100%; box-sizing: border-box; text-transform: uppercase;">
+        </div>
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 700; color: #1e3a8a; display: block; margin-bottom: 0.25rem;">Teks Narasi Pilihan:</label>
+          <input type="text" id="swalNewTypeName" class="swal2-input" placeholder="Contoh: Yudisium Kelulusan Sarjana" style="margin: 0; width: 100%; box-sizing: border-box;">
+        </div>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Tambahkan Opsi',
+    cancelButtonText: 'Batal',
+    confirmButtonColor: '#0d2346',
+    preConfirm: () => {
+      const code = document.getElementById('swalNewTypeCode').value.trim().toUpperCase().replace(/\s+/g, '_');
+      const name = document.getElementById('swalNewTypeName').value.trim();
+      if (!code || !name) {
+        Swal.showValidationMessage('Kode dan Teks Narasi wajib diisi.');
+        return false;
+      }
+      if (workingJadwalTypes.some((t) => t.id === code)) {
+        Swal.showValidationMessage(`Kode "${code}" sudah terdaftar.`);
+        return false;
+      }
+      return { id: code, nama: name };
+    },
+  }).then((res) => {
+    if (res.isConfirmed && res.value) {
+      workingJadwalTypes.push({
+        id: res.value.id,
+        nama: res.value.nama,
+        badgeColor: '#7e22ce',
+        badgeBg: '#f3e8ff',
+      });
+      renderJadwalTypesEditor();
+    }
+  });
+}
+
+function removeJadwalTypeRow(idx) {
+  const item = workingJadwalTypes[idx];
+  if (!item) return;
+
+  Swal.fire({
+    title: `Hapus Opsi "${item.nama}"?`,
+    text: 'Opsi ini tidak akan lagi muncul dalam pilihan dropdown penjadwalan.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: 'Ya, Hapus Opsi',
+    cancelButtonText: 'Batal',
+  }).then((res) => {
+    if (res.isConfirmed) {
+      workingJadwalTypes.splice(idx, 1);
+      renderJadwalTypesEditor();
+    }
+  });
+}
+
+async function handleSaveJadwalTypes() {
+  const btn = document.getElementById('btnSaveJadwalTypes');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`;
+  }
+
+  // Ambil nilai terkini dari input
+  workingJadwalTypes.forEach((t, idx) => {
+    const input = document.getElementById(`jtype_nama_${idx}`);
+    if (input && input.value.trim()) {
+      t.nama = input.value.trim();
+    }
+  });
+
+  try {
+    const res = await fetch('/api/admin/jadwal/types', {
+      method: 'PUT',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ types: workingJadwalTypes }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'Gagal menyimpan opsi jadwal.');
+    }
+
+    globalJadwalTypes = data.types || workingJadwalTypes;
+    rebuildJadwalTypesMap();
+    populateJadwalJenisDropdown();
+    renderJadwalTable(allJadwalList);
+
+    closeManageJadwalTypesModal();
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Opsi Berhasil Disimpan!',
+      text: 'Narasi opsi pilihan jadwal telah diperbarui dan langsung aktif.',
+      timer: 1800,
+      showConfirmButton: false,
+    });
+  } catch (err) {
+    console.error('Error save jadwal types:', err);
+    Swal.fire({
+      icon: 'error',
+      title: 'Gagal Menyimpan',
+      text: err.message || 'Terjadi gangguan saat menyimpan opsi pilihan jadwal.',
+      confirmButtonColor: '#0d2346',
+    });
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan Opsi`;
+    }
+  }
 }
 
 // Simpan (Tambah / Update) Jadwal Ujian
