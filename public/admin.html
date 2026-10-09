@@ -212,76 +212,262 @@
       </div>
     </div>
 
-    <!-- TAB 3: Pengaturan Narasi & Teks Situs -->
+    <!-- TAB 3: Pengaturan Narasi & Teks Situs + Live POV Simulator -->
     <div id="tabViewSiteConfig" style="display: none;">
       <div class="table-card" style="padding: 1.5rem;">
-        <div style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.85rem;">
-          <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--primary-navy);">
-            <i class="fa-solid fa-pen-nib" style="color: var(--primary-blue); margin-right: 0.4rem;"></i>
-            Pengaturan Narasi, Header & Teks Konten Situs
-          </h3>
-          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem;">
-            Ubah teks apapun yang tampil pada halaman Beranda publik atau halaman Login. Perubahan akan tersimpan di database dan sinkron secara real-time.
-          </p>
-        </div>
-
-        <form id="formSiteConfig" onsubmit="handleSaveSiteConfig(event)">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
-            
-            <div class="form-group">
-              <label for="cfg_beranda_header_chip">Badge Header Beranda (Tahun Akademik)</label>
-              <textarea id="cfg_beranda_header_chip" class="auto-expand-textarea" rows="1" placeholder="Contoh: Tahun Akademik 2024/2025 Genap"></textarea>
-            </div>
-
-            <div class="form-group">
-              <label for="cfg_beranda_title">Judul Utama Beranda</label>
-              <textarea id="cfg_beranda_title" class="auto-expand-textarea" rows="2" placeholder="Contoh: Portal Monitoring Skripsi & Akademik Bimbingan"></textarea>
-            </div>
-
-            <div class="form-group" style="grid-column: 1 / -1;">
-              <label for="cfg_beranda_subtitle">Subjudul / Deskripsi Utama Beranda</label>
-              <textarea id="cfg_beranda_subtitle" class="auto-expand-textarea" rows="3" placeholder="Sistem pemantauan berkas..."></textarea>
-            </div>
-
-            <div class="form-group">
-              <label for="cfg_login_judul">Judul Banner Halaman Login</label>
-              <textarea id="cfg_login_judul" class="auto-expand-textarea" rows="1" placeholder="Judul Login"></textarea>
-            </div>
-
-            <div class="form-group">
-              <label for="cfg_beranda_footer">Teks Footer Website</label>
-              <textarea id="cfg_beranda_footer" class="auto-expand-textarea" rows="2" placeholder="Teks Footer"></textarea>
-            </div>
-
-            <div class="form-group" style="grid-column: 1 / -1;">
-              <label for="cfg_login_deskripsi">Deskripsi Banner Halaman Login</label>
-              <textarea id="cfg_login_deskripsi" class="auto-expand-textarea" rows="2" placeholder="Deskripsi Login"></textarea>
-            </div>
-
-            <div class="form-group">
-              <label for="cfg_login_petunjuk_admin">Petunjuk Autentikasi Dosen / Admin</label>
-              <textarea id="cfg_login_petunjuk_admin" class="auto-expand-textarea" rows="2" placeholder="Petunjuk login dosen/admin"></textarea>
-            </div>
-
-            <div class="form-group">
-              <label for="cfg_login_petunjuk_mhs">Petunjuk Autentikasi Mahasiswa</label>
-              <textarea id="cfg_login_petunjuk_mhs" class="auto-expand-textarea" rows="2" placeholder="Petunjuk login mahasiswa"></textarea>
-            </div>
-
-            <div class="form-group" style="grid-column: 1 / -1;">
-              <label for="cfg_helpdesk_info">Informasi Kontak Helpdesk</label>
-              <textarea id="cfg_helpdesk_info" class="auto-expand-textarea" rows="2" placeholder="Informasi kontak helpdesk"></textarea>
-            </div>
-
+        
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.85rem; flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--primary-navy); display: flex; align-items: center; gap: 0.45rem;">
+              <i class="fa-solid fa-pen-nib" style="color: var(--primary-blue);"></i>
+              Pengaturan Narasi & Live POV Simulator
+            </h3>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem;">
+              Ubah teks narasi di sebelah kiri. Simulasi Point of View (POV) di sebelah kanan akan berubah real-time saat Anda mengetik!
+            </p>
           </div>
 
-          <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
-            <button type="submit" class="btn-primary" style="width: auto; padding: 0.75rem 2rem;" id="btnSaveConfig">
-              <i class="fa-solid fa-floppy-disk"></i>
-              <span>Simpan Semua Pengaturan Narasi</span>
+          <!-- POV Mode Switcher -->
+          <div class="pov-switcher-bar" style="margin-bottom: 0;">
+            <button type="button" class="btn-pov-switch active" id="btnPovBeranda" onclick="switchPovMode('beranda')">
+              <i class="fa-solid fa-globe"></i> POV Beranda Publik
+            </button>
+            <button type="button" class="btn-pov-switch" id="btnPovMahasiswa" onclick="switchPovMode('mahasiswa')">
+              <i class="fa-solid fa-graduation-cap"></i> POV Dashboard Mahasiswa
+            </button>
+            <button type="button" class="btn-pov-switch" id="btnPovLogin" onclick="switchPovMode('login')">
+              <i class="fa-solid fa-right-to-bracket"></i> POV Halaman Login
             </button>
           </div>
-        </form>
+        </div>
+
+        <div class="pov-container-grid">
+          
+          <!-- SISI KIRI: FORM EDITOR NARASI -->
+          <div>
+            <form id="formSiteConfig" onsubmit="handleSaveSiteConfig(event)">
+              <div style="display: flex; flex-direction: column; gap: 1rem;">
+                
+                <div class="form-group">
+                  <label for="cfg_beranda_header_chip">Badge Header Beranda (Tahun Akademik)</label>
+                  <textarea id="cfg_beranda_header_chip" class="auto-expand-textarea" rows="1" placeholder="Contoh: Tahun Akademik 2024/2025 Genap" oninput="syncPovLive()"></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label for="cfg_beranda_title">Judul Utama Beranda</label>
+                  <textarea id="cfg_beranda_title" class="auto-expand-textarea" rows="2" placeholder="Contoh: Portal Monitoring Skripsi & Akademik Bimbingan" oninput="syncPovLive()"></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label for="cfg_beranda_subtitle">Subjudul / Deskripsi Utama Beranda</label>
+                  <textarea id="cfg_beranda_subtitle" class="auto-expand-textarea" rows="3" placeholder="Sistem pemantauan berkas..." oninput="syncPovLive()"></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label for="cfg_beranda_footer">Teks Footer Website</label>
+                  <textarea id="cfg_beranda_footer" class="auto-expand-textarea" rows="2" placeholder="Teks Footer" oninput="syncPovLive()"></textarea>
+                </div>
+
+                <div style="border-top: 1px dashed var(--border-color); padding-top: 0.75rem; margin-top: 0.25rem;">
+                  <h4 style="font-size: 0.88rem; color: var(--primary-navy); margin-bottom: 0.75rem;">
+                    <i class="fa-solid fa-lock" style="color: #64748b;"></i> Narasi Halaman Login
+                  </h4>
+                </div>
+
+                <div class="form-group">
+                  <label for="cfg_login_judul">Judul Halaman Login</label>
+                  <textarea id="cfg_login_judul" class="auto-expand-textarea" rows="1" placeholder="Judul Login" oninput="syncPovLive()"></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label for="cfg_login_deskripsi">Deskripsi Singkat Halaman Login</label>
+                  <textarea id="cfg_login_deskripsi" class="auto-expand-textarea" rows="2" placeholder="Deskripsi Login" oninput="syncPovLive()"></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label for="cfg_login_petunjuk_admin">Petunjuk Autentikasi Dosen / Admin</label>
+                  <textarea id="cfg_login_petunjuk_admin" class="auto-expand-textarea" rows="2" placeholder="Petunjuk login dosen/admin" oninput="syncPovLive()"></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label for="cfg_login_petunjuk_mhs">Petunjuk Autentikasi Mahasiswa</label>
+                  <textarea id="cfg_login_petunjuk_mhs" class="auto-expand-textarea" rows="2" placeholder="Petunjuk login mahasiswa" oninput="syncPovLive()"></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label for="cfg_helpdesk_info">Informasi Kontak Helpdesk</label>
+                  <textarea id="cfg_helpdesk_info" class="auto-expand-textarea" rows="2" placeholder="Informasi kontak helpdesk" oninput="syncPovLive()"></textarea>
+                </div>
+
+              </div>
+
+              <div style="display: flex; justify-content: flex-start; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                <button type="submit" class="btn-primary" style="width: auto; padding: 0.75rem 2rem;" id="btnSaveConfig">
+                  <i class="fa-solid fa-floppy-disk"></i>
+                  <span>Simpan Semua Pengaturan Narasi</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- SISI KANAN: LIVE SIMULATOR POV (POINT OF VIEW) -->
+          <div>
+            <div class="pov-device-frame">
+              <div class="pov-device-topbar">
+                <div class="pov-browser-dots">
+                  <span style="background: #ef4444;"></span>
+                  <span style="background: #f59e0b;"></span>
+                  <span style="background: #10b981;"></span>
+                </div>
+                <div class="pov-browser-url" id="povBrowserUrl">
+                  <i class="fa-solid fa-lock"></i> https://siakad-skripsi-web.vercel.app/
+                </div>
+                <div style="font-size: 0.68rem; color: #10b981; font-weight: 700; display: flex; align-items: center; gap: 0.25rem;">
+                  <span class="live-dot"></span> POV LIVE
+                </div>
+              </div>
+
+              <div class="pov-device-screen">
+                
+                <!-- 1. POV BERANDA PUBLIK -->
+                <div id="povScreenBeranda">
+                  <!-- Mini Navbar -->
+                  <div style="background: #07152b; color: white; padding: 0.5rem 0.85rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                      <img src="/img/Logo-Fakultas-Psikologi.png" alt="Logo" style="height: 24px;">
+                      <div>
+                        <div style="font-size: 0.72rem; font-weight: 800;">SIAKAD SKRIPSI</div>
+                        <div style="font-size: 0.52rem; color: #93c5fd;">Fakultas Psikologi – Universitas Bosowa</div>
+                      </div>
+                    </div>
+                    <span style="font-size: 0.65rem; background: #2563eb; color: white; padding: 0.2rem 0.5rem; border-radius: 4px;">Masuk</span>
+                  </div>
+
+                  <!-- Mini Hero -->
+                  <div style="background: linear-gradient(135deg, #07152b 0%, #0d2346 50%, #164e87 100%); color: white; padding: 1.5rem 1rem;">
+                    <div style="display: inline-flex; align-items: center; gap: 0.3rem; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; padding: 0.2rem 0.5rem; font-size: 0.62rem; color: #fbbf24; font-weight: 600; margin-bottom: 0.6rem;">
+                      <i class="fa-solid fa-building-columns"></i>
+                      <span id="povBerandaChip">Tahun Akademik 2024/2025 Genap</span>
+                    </div>
+                    <h2 id="povBerandaTitle" style="font-size: 1.15rem; font-weight: 800; line-height: 1.3; margin-bottom: 0.4rem;">
+                      Portal Monitoring Skripsi & Akademik Bimbingan
+                    </h2>
+                    <p id="povBerandaSubtitle" style="font-size: 0.72rem; color: #cbd5e1; line-height: 1.4; margin-bottom: 0.85rem;">
+                      Sistem pemantauan berkas seminar proposal, seminar hasil, dan ujian skripsi secara transparan, terintegrasi, dan real-time.
+                    </p>
+                    <div style="display: flex; gap: 0.4rem;">
+                      <span style="background: #f59e0b; color: white; font-size: 0.62rem; font-weight: 700; padding: 0.3rem 0.6rem; border-radius: 4px;">Jadwal Ujian</span>
+                      <span style="background: rgba(255,255,255,0.15); color: white; font-size: 0.62rem; padding: 0.3rem 0.6rem; border-radius: 4px;">Direktori Mahasiswa</span>
+                    </div>
+                  </div>
+
+                  <!-- Mini Stats Preview -->
+                  <div style="padding: 0.85rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.5rem;">
+                      <div style="font-size: 0.95rem; font-weight: 800; color: #0d2346;">12</div>
+                      <div style="font-size: 0.6rem; color: #64748b;">Total Mahasiswa</div>
+                    </div>
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.5rem;">
+                      <div style="font-size: 0.95rem; font-weight: 800; color: #059669;">8</div>
+                      <div style="font-size: 0.6rem; color: #64748b;">Lulus Ujian Skripsi</div>
+                    </div>
+                  </div>
+
+                  <!-- Mini Footer -->
+                  <div style="background: white; border-top: 1px solid #e2e8f0; padding: 0.65rem 0.85rem; text-align: center; font-size: 0.62rem; color: #64748b;" id="povBerandaFooter">
+                    Sistem Informasi Manajemen Skripsi & Verifikasi Berkas Terpadu • Program Studi Psikologi
+                  </div>
+                </div>
+
+                <!-- 2. POV DASHBOARD MAHASISWA -->
+                <div id="povScreenMahasiswa" style="display: none; padding: 0.85rem;">
+                  <!-- Mini Navbar Mahasiswa -->
+                  <div style="background: #07152b; color: white; padding: 0.5rem 0.85rem; display: flex; justify-content: space-between; align-items: center; border-radius: 6px; margin-bottom: 0.85rem;">
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                      <img src="/img/Logo-Fakultas-Psikologi.png" alt="Logo" style="height: 20px;">
+                      <span style="font-size: 0.72rem; font-weight: 700;">Portal Mahasiswa</span>
+                    </div>
+                    <span style="font-size: 0.62rem; color: #93c5fd;">NIM: 4521012001</span>
+                  </div>
+
+                  <!-- Mini Profile Card Mahasiswa -->
+                  <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.65rem;">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: #164e87; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem;">
+                      AH
+                    </div>
+                    <div>
+                      <div style="font-size: 0.82rem; font-weight: 700; color: #0d2346;">Ahmad Hidayat</div>
+                      <div style="font-size: 0.65rem; color: #64748b;">Psikologi • Angkatan 2021</div>
+                      <div style="font-size: 0.62rem; color: #0284c7; margin-top: 0.15rem;">Pembimbing: Dr. Ir. Fitrah, M.T.</div>
+                    </div>
+                  </div>
+
+                  <!-- 3 Mini Portals -->
+                  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div style="background: white; border: 1px solid #bbf7d0; border-radius: 6px; padding: 0.6rem; display: flex; justify-content: space-between; align-items: center;">
+                      <div>
+                        <div style="font-size: 0.72rem; font-weight: 700; color: #15803d;">1. Seminar Proposal (SEMPRO)</div>
+                        <div style="font-size: 0.6rem; color: #64748b;">4 Dokumen Syarat Terverifikasi</div>
+                      </div>
+                      <span style="background: #dcfce7; color: #15803d; font-size: 0.6rem; font-weight: 700; padding: 0.2rem 0.45rem; border-radius: 4px;">ACC / VALID</span>
+                    </div>
+
+                    <div style="background: white; border: 1px solid #fde68a; border-radius: 6px; padding: 0.6rem; display: flex; justify-content: space-between; align-items: center;">
+                      <div>
+                        <div style="font-size: 0.72rem; font-weight: 700; color: #b45309;">2. Seminar Hasil (SEMHAS)</div>
+                        <div style="font-size: 0.6rem; color: #64748b;">Link Drive Telah Dikirim</div>
+                      </div>
+                      <span style="background: #fef3c7; color: #b45309; font-size: 0.6rem; font-weight: 700; padding: 0.2rem 0.45rem; border-radius: 4px;">PERIKSA BERKAS</span>
+                    </div>
+
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.6rem; display: flex; justify-content: space-between; align-items: center;">
+                      <div>
+                        <div style="font-size: 0.72rem; font-weight: 700; color: #475569;">3. Sidang Skripsi (UJIAN MEJA)</div>
+                        <div style="font-size: 0.6rem; color: #64748b;">Belum Mengirimkan Berkas</div>
+                      </div>
+                      <span style="background: #f1f5f9; color: #64748b; font-size: 0.6rem; font-weight: 700; padding: 0.2rem 0.45rem; border-radius: 4px;">BELUM DIISI</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 3. POV HALAMAN LOGIN -->
+                <div id="povScreenLogin" style="display: none; padding: 1.25rem 0.85rem; background: #e6effa;">
+                  <div style="background: white; border: 1px solid #cbd5e1; border-radius: 10px; padding: 1.25rem; max-width: 320px; margin: 0 auto; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+                    <img src="/img/Logo-Fakultas-Psikologi.png" alt="Logo" style="height: 38px; margin-bottom: 0.4rem;">
+                    <h3 id="povLoginJudul" style="font-size: 0.95rem; font-weight: 800; color: #0d2346; margin-bottom: 0.2rem;">
+                      Masuk ke Portal
+                    </h3>
+                    <p id="povLoginDeskripsi" style="font-size: 0.68rem; color: #64748b; margin-bottom: 0.75rem;">
+                      Portal Monitoring Skripsi & Verifikasi Berkas
+                    </p>
+
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.5rem; font-size: 0.62rem; color: #64748b; text-align: left; margin-bottom: 0.75rem;">
+                      <div>• <strong>Mhs:</strong> <span id="povLoginPetunjukMhs">Masukkan NIM terdaftar.</span></div>
+                      <div style="margin-top: 0.2rem;">• <strong>Dosen:</strong> <span id="povLoginPetunjukAdmin">Masukkan username admin.</span></div>
+                    </div>
+
+                    <div style="background: #f1f5f9; border-radius: 6px; padding: 0.4rem; font-size: 0.68rem; color: #94a3b8; margin-bottom: 0.5rem; text-align: left;">
+                      [ Input Username / NIM ]
+                    </div>
+                    <div style="background: #f1f5f9; border-radius: 6px; padding: 0.4rem; font-size: 0.68rem; color: #94a3b8; margin-bottom: 0.75rem; text-align: left;">
+                      [ Input Kata Sandi ]
+                    </div>
+                    <div style="background: #0d2346; color: white; font-size: 0.72rem; font-weight: 700; padding: 0.5rem; border-radius: 6px;">
+                      Masuk ke Portal
+                    </div>
+
+                    <div style="font-size: 0.6rem; color: #64748b; margin-top: 0.85rem;" id="povLoginHelpdesk">
+                      Butuh aktivasi NIM? Hubungi Helpdesk Akademik.
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+        </div>
+
       </div>
     </div>
 

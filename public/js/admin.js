@@ -1395,6 +1395,7 @@ function switchAdminTab(tabName) {
     loadSiteConfigAdmin();
     setTimeout(() => {
       document.querySelectorAll('#formSiteConfig .auto-expand-textarea').forEach(autoResizeTextarea);
+      syncPovLive();
     }, 80);
   }
 }
@@ -1768,6 +1769,8 @@ async function loadSiteConfigAdmin() {
       setTimeout(() => {
         document.querySelectorAll('#formSiteConfig .auto-expand-textarea').forEach(autoResizeTextarea);
       }, 50);
+
+      syncPovLive();
     }
   } catch (err) {
     console.error('Error load siteconfig admin:', err);
@@ -2036,6 +2039,67 @@ async function handleSaveDosenProfile(e) {
       btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Simpan Profil`;
     }
   }
+}
+
+// ══════════════════════════════════════════════════════════════
+// LIVE POV (POINT OF VIEW) CONTROLLER
+// ══════════════════════════════════════════════════════════════
+function switchPovMode(mode) {
+  const btnBeranda = document.getElementById('btnPovBeranda');
+  const btnMahasiswa = document.getElementById('btnPovMahasiswa');
+  const btnLogin = document.getElementById('btnPovLogin');
+
+  const screenBeranda = document.getElementById('povScreenBeranda');
+  const screenMahasiswa = document.getElementById('povScreenMahasiswa');
+  const screenLogin = document.getElementById('povScreenLogin');
+  const urlEl = document.getElementById('povBrowserUrl');
+
+  if (btnBeranda) btnBeranda.classList.remove('active');
+  if (btnMahasiswa) btnMahasiswa.classList.remove('active');
+  if (btnLogin) btnLogin.classList.remove('active');
+
+  if (screenBeranda) screenBeranda.style.display = 'none';
+  if (screenMahasiswa) screenMahasiswa.style.display = 'none';
+  if (screenLogin) screenLogin.style.display = 'none';
+
+  if (mode === 'beranda') {
+    if (btnBeranda) btnBeranda.classList.add('active');
+    if (screenBeranda) screenBeranda.style.display = 'block';
+    if (urlEl) urlEl.innerHTML = `<i class="fa-solid fa-lock"></i> https://siakad-skripsi-web.vercel.app/`;
+  } else if (mode === 'mahasiswa') {
+    if (btnMahasiswa) btnMahasiswa.classList.add('active');
+    if (screenMahasiswa) screenMahasiswa.style.display = 'block';
+    if (urlEl) urlEl.innerHTML = `<i class="fa-solid fa-lock"></i> https://siakad-skripsi-web.vercel.app/mahasiswa.html`;
+  } else if (mode === 'login') {
+    if (btnLogin) btnLogin.classList.add('active');
+    if (screenLogin) screenLogin.style.display = 'block';
+    if (urlEl) urlEl.innerHTML = `<i class="fa-solid fa-lock"></i> https://siakad-skripsi-web.vercel.app/login.html`;
+  }
+}
+
+function syncPovLive() {
+  const getVal = (id, fallback) => {
+    const el = document.getElementById(id);
+    return el && el.value.trim() ? el.value : fallback;
+  };
+
+  const setTxt = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+
+  // 1. Beranda
+  setTxt('povBerandaChip', getVal('cfg_beranda_header_chip', 'Tahun Akademik 2024/2025 Genap'));
+  setTxt('povBerandaTitle', getVal('cfg_beranda_title', 'Portal Monitoring Skripsi & Akademik Bimbingan'));
+  setTxt('povBerandaSubtitle', getVal('cfg_beranda_subtitle', 'Sistem pemantauan berkas seminar proposal, seminar hasil, dan ujian skripsi secara transparan, terintegrasi, dan real-time.'));
+  setTxt('povBerandaFooter', getVal('cfg_beranda_footer', 'Sistem Informasi Manajemen Skripsi & Verifikasi Berkas Terpadu • Program Studi Psikologi'));
+
+  // 2. Login
+  setTxt('povLoginJudul', getVal('cfg_login_judul', 'Masuk ke Portal'));
+  setTxt('povLoginDeskripsi', getVal('cfg_login_deskripsi', 'Portal Monitoring Skripsi & Verifikasi Berkas'));
+  setTxt('povLoginPetunjukAdmin', getVal('cfg_login_petunjuk_admin', 'Masukkan kata sandi admin12345 untuk masuk ke Dashboard.'));
+  setTxt('povLoginPetunjukMhs', getVal('cfg_login_petunjuk_mhs', 'Masukkan NIM Anda yang sudah didaftarkan dosen.'));
+  setTxt('povLoginHelpdesk', getVal('cfg_helpdesk_info', 'Butuh aktivasi NIM? Hubungi Helpdesk Akademik Gedung Rektorat Lt. 1.'));
 }
 
 
