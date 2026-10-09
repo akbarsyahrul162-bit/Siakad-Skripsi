@@ -1868,6 +1868,19 @@ let currentDosenProfile = {
 };
 let pendingDosenPhotoBase64 = null;
 
+function getDosenInitials(nama) {
+  if (!nama) return 'DF';
+  // Bersihkan gelar akademik umum agar inisial fokus ke nama
+  const clean = nama.replace(/^(Dr\.|Prof\.|Ir\.|Drs\.|Dra\.)\s*/gi, '').trim();
+  const words = clean.split(/\s+/).filter((w) => w && !w.includes('.') && w.match(/[A-Za-z]/));
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  } else if (words.length === 1) {
+    return words[0].slice(0, 2).toUpperCase();
+  }
+  return 'DF';
+}
+
 async function loadDosenProfile() {
   try {
     const res = await fetch('/api/admin/profile', {
@@ -1897,49 +1910,46 @@ function renderDosenProfileNavbar(prof) {
     if (prof.foto) {
       avatarEl.innerHTML = `<img src="${prof.foto}" alt="${escapeHtml(prof.nama)}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
     } else {
-      const initials = (prof.nama || 'Dosen')
-        .split(' ')
-        .map((w) => w[0])
-        .filter((c) => c && c.match(/[A-Za-z]/))
-        .slice(0, 2)
-        .join('')
-        .toUpperCase() || 'DF';
-      avatarEl.textContent = initials;
+      avatarEl.textContent = getDosenInitials(prof.nama);
     }
   }
 }
 
 function openDosenProfileModal() {
   const modal = document.getElementById('dosenProfileModal');
-  if (!modal) return;
+  if (!modal) {
+    console.error('Modal dosenProfileModal tidak ditemukan di DOM!');
+    return;
+  }
 
-  document.getElementById('inputDosenNama').value = currentDosenProfile.nama || '';
-  document.getElementById('inputDosenJabatan').value = currentDosenProfile.jabatan || '';
+  const nameInput = document.getElementById('inputDosenNama');
+  const jabatanInput = document.getElementById('inputDosenJabatan');
+  if (nameInput) nameInput.value = currentDosenProfile.nama || '';
+  if (jabatanInput) jabatanInput.value = currentDosenProfile.jabatan || '';
 
   pendingDosenPhotoBase64 = currentDosenProfile.foto || null;
   const previewEl = document.getElementById('modalDosenAvatarPreview');
   if (previewEl) {
     if (pendingDosenPhotoBase64) {
-      previewEl.innerHTML = `<img src="${pendingDosenPhotoBase64}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+      previewEl.innerHTML = `<img src="${pendingDosenPhotoBase64}" alt="Foto Profil" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
     } else {
-      const initials = (currentDosenProfile.nama || 'DF')
-        .split(' ')
-        .map((w) => w[0])
-        .filter((c) => c && c.match(/[A-Za-z]/))
-        .slice(0, 2)
-        .join('')
-        .toUpperCase() || 'DF';
-      previewEl.textContent = initials;
+      previewEl.textContent = getDosenInitials(currentDosenProfile.nama);
     }
   }
 
+  // Tampilkan modal secara instan 0ms
   modal.style.display = 'flex';
+  if (nameInput) {
+    setTimeout(() => nameInput.focus(), 50);
+  }
 }
 
 function closeDosenProfileModal() {
   const modal = document.getElementById('dosenProfileModal');
   if (modal) modal.style.display = 'none';
   pendingDosenPhotoBase64 = null;
+  const fileInput = document.getElementById('inputDosenFoto');
+  if (fileInput) fileInput.value = '';
 }
 
 function handleDosenPhotoSelected(e) {
@@ -1972,12 +1982,12 @@ function handleDosenPhotoSelected(e) {
       const startY = (img.height - minDim) / 2;
 
       ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, size, size);
-      const base64 = canvas.toDataURL('image/jpeg', 0.9);
+      const base64 = canvas.toDataURL('image/jpeg', 0.88);
       pendingDosenPhotoBase64 = base64;
 
       const previewEl = document.getElementById('modalDosenAvatarPreview');
       if (previewEl) {
-        previewEl.innerHTML = `<img src="${base64}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+        previewEl.innerHTML = `<img src="${base64}" alt="Foto Profil" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
       }
     };
     img.src = event.target.result;
@@ -1990,7 +2000,6 @@ async function handleSaveDosenProfile(e) {
 
   const nama = document.getElementById('inputDosenNama').value.trim();
   const jabatan = document.getElementById('inputDosenJabatan').value.trim();
-  const btn = document.getElementById('btnSaveDosenProfile');
 
   if (!nama || !jabatan) {
     Swal.fire({
@@ -2002,11 +2011,32 @@ async function handleSaveDosenProfile(e) {
     return;
   }
 
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`;
-  }
+  const prevProfile = { ...currentDosenProfile };
 
+  // Optimistic Instant Update di Navbar
+  currentDosenProfile.nama = nama;
+  currentDosenProfile.jabatan = jabatan;
+  if (pendingDosenPhotoBase64 !== null) {
+    currentDosenProfile.foto = pendingDosenPhotoBase64;
+  }
+  renderDosenProfileNavbar(currentDosenProfile);
+
+  // Tutup modal seketika
+  closeDosenProfileModal();
+
+  // Mini toast konfirmasi non-blocking (1.5s)
+  Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 1500,
+    timerProgressBar: true,
+  }).fire({
+    icon: 'success',
+    title: 'Profil dosen berhasil diperbarui',
+  });
+
+  // Kirim simpanan ke server di background
   try {
     const res = await fetch('/api/admin/profile', {
       method: 'PUT',
@@ -2022,19 +2052,13 @@ async function handleSaveDosenProfile(e) {
     });
 
     const data = await res.json();
-    if (data.success) {
+    if (data.success && data.profile) {
       currentDosenProfile = data.profile;
       renderDosenProfileNavbar(currentDosenProfile);
-      closeDosenProfileModal();
-
-      Swal.fire({
-        icon: 'success',
-        title: 'Profil Berhasil Disimpan',
-        text: 'Nama, jabatan, dan foto profil dosen telah diperbarui secara real-time!',
-        timer: 1800,
-        showConfirmButton: false,
-      });
-    } else {
+    } else if (!data.success) {
+      // Rollback jika gagal
+      currentDosenProfile = prevProfile;
+      renderDosenProfileNavbar(currentDosenProfile);
       Swal.fire({
         icon: 'error',
         title: 'Gagal',
@@ -2044,17 +2068,14 @@ async function handleSaveDosenProfile(e) {
     }
   } catch (err) {
     console.error('Error save profile dosen:', err);
+    currentDosenProfile = prevProfile;
+    renderDosenProfileNavbar(currentDosenProfile);
     Swal.fire({
       icon: 'error',
       title: 'Kesalahan Sistem',
       text: 'Terjadi gangguan jaringan saat menyimpan profil.',
       confirmButtonColor: '#0d2346',
     });
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Simpan Profil`;
-    }
   }
 }
 
