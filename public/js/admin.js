@@ -1773,6 +1773,8 @@ async function loadSiteConfigAdmin() {
         if (el && val !== undefined) el.value = val;
       };
 
+      setVal('cfg_dosen_nama', currentDosenProfile.nama || 'Dr. Ir. Fitrah, M.T.');
+      setVal('cfg_dosen_jabatan', currentDosenProfile.jabatan || 'Dosen Pembimbing Skripsi');
       setVal('cfg_beranda_header_chip', cfg.beranda_header_chip || 'Tahun Akademik 2024/2025 Genap');
       setVal('cfg_beranda_title', cfg.beranda_title || 'Portal Monitoring Skripsi & Akademik Bimbingan');
       setVal('cfg_beranda_subtitle', cfg.beranda_subtitle || 'Sistem pemantauan berkas seminar proposal, seminar hasil, dan ujian skripsi secara transparan, terintegrasi, dan real-time.');
@@ -1780,7 +1782,7 @@ async function loadSiteConfigAdmin() {
       setVal('cfg_login_judul', cfg.login_judul || 'Sistem Pengumpulan & Verifikasi Berkas Skripsi');
       setVal('cfg_login_deskripsi', cfg.login_deskripsi || 'Portal akademik terpadu untuk pengumpulan dan verifikasi berkas Seminar Proposal, Seminar Hasil, dan Ujian Meja / Skripsi.');
       setVal('cfg_login_petunjuk_admin', cfg.login_petunjuk_admin || 'Masukkan kata sandi admin12345 (atau username admin) untuk masuk ke Dashboard Monitoring.');
-      setVal('cfg_login_petunjuk_mhs', cfg.login_petunjuk_mhs || 'Masukkan NIM Anda yang sudah didaftarkan oleh dosen di dashboard admin.');
+      setVal('cfg_login_petunjuk_mhs', cfg.login_petunjuk_mhs || 'Masukkan nama lengkap NIM Anda');
       setVal('cfg_helpdesk_info', cfg.helpdesk_info || 'Butuh aktivasi NIM? Hubungi Helpdesk Akademik Gedung Rektorat Lt. 1.');
 
       setTimeout(() => {
@@ -1794,7 +1796,7 @@ async function loadSiteConfigAdmin() {
   }
 }
 
-// Simpan Semua Narasi SiteConfig
+// Simpan Semua Narasi SiteConfig & Profil Dosen
 async function handleSaveSiteConfig(e) {
   if (e && e.preventDefault) e.preventDefault();
 
@@ -1802,6 +1804,29 @@ async function handleSaveSiteConfig(e) {
   if (btn) {
     btn.disabled = true;
     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan Narasi...`;
+  }
+
+  const dosenNama = document.getElementById('cfg_dosen_nama')?.value.trim();
+  const dosenJabatan = document.getElementById('cfg_dosen_jabatan')?.value.trim();
+
+  // Simpan profil dosen jika diubah
+  if (dosenNama || dosenJabatan) {
+    if (dosenNama) currentDosenProfile.nama = dosenNama;
+    if (dosenJabatan) currentDosenProfile.jabatan = dosenJabatan;
+    renderDosenProfileNavbar(currentDosenProfile);
+
+    fetch('/api/admin/profile', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        nama: currentDosenProfile.nama,
+        jabatan: currentDosenProfile.jabatan,
+        foto: currentDosenProfile.foto,
+      }),
+    }).catch((err) => console.error('Error save profile via form:', err));
   }
 
   const configs = {
@@ -1836,8 +1861,8 @@ async function handleSaveSiteConfig(e) {
 
     Swal.fire({
       icon: 'success',
-      title: 'Narasi Tersimpan!',
-      text: 'Semua teks dan narasi web telah diperbarui dan langsung tampil di beranda & login secara real-time!',
+      title: 'Pengaturan Berhasil Disimpan!',
+      text: 'Semua teks, profil dosen, dan narasi web telah diperbarui secara real-time!',
       timer: 2000,
       showConfirmButton: false,
     });
@@ -1902,9 +1927,13 @@ function renderDosenProfileNavbar(prof) {
   const nameEl = document.getElementById('navAdminName');
   const roleEl = document.getElementById('navAdminRole');
   const avatarEl = document.getElementById('navAdminAvatar');
+  const cfgNama = document.getElementById('cfg_dosen_nama');
+  const cfgJabatan = document.getElementById('cfg_dosen_jabatan');
 
   if (nameEl && prof.nama) nameEl.textContent = prof.nama;
   if (roleEl && prof.jabatan) roleEl.textContent = prof.jabatan;
+  if (cfgNama && prof.nama) cfgNama.value = prof.nama;
+  if (cfgJabatan && prof.jabatan) cfgJabatan.value = prof.jabatan;
 
   if (avatarEl) {
     if (prof.foto) {
@@ -1914,6 +1943,16 @@ function renderDosenProfileNavbar(prof) {
     }
   }
 }
+
+// Pasang listener sentuhan di HP agar profil terbuka seketika saat disentuh
+document.addEventListener('DOMContentLoaded', () => {
+  const badge = document.getElementById('btnOpenDosenProfile');
+  if (badge) {
+    badge.addEventListener('touchend', (e) => {
+      openDosenProfileModal();
+    });
+  }
+});
 
 function openDosenProfileModal() {
   const modal = document.getElementById('dosenProfileModal');

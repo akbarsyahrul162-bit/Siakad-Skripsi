@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Portal Dosen & Admin - Monitoring Berkas Skripsi</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -22,7 +25,7 @@
         </div>
       </div>
       <div class="nav-user-meta">
-        <div class="user-badge" id="btnOpenDosenProfile" onclick="openDosenProfileModal()" role="button" tabindex="0" title="Klik untuk edit profil dosen" style="cursor: pointer; display: flex; align-items: center; gap: 0.65rem; padding: 0.35rem 0.75rem; border-radius: 10px; transition: all 0.2s ease; user-select: none;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='transparent'" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'">
+        <div class="user-badge" id="btnOpenDosenProfile" onclick="openDosenProfileModal()" ontouchend="openDosenProfileModal()" role="button" tabindex="0" title="Klik untuk edit profil dosen" style="cursor: pointer; display: flex; align-items: center; gap: 0.65rem; padding: 0.35rem 0.75rem; border-radius: 10px; transition: all 0.2s ease; user-select: none;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='transparent'" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'">
           <div style="position: relative;">
             <div id="navAdminAvatar" class="student-avatar" style="width: 38px; height: 38px; border: 2px solid #60a5fa; background: #1e3a8a; color: white; font-weight: 700; font-size: 0.95rem; overflow: hidden; display: flex; align-items: center; justify-content: center;">
               DF
@@ -117,8 +120,8 @@
 
         <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
           <button class="btn-add-student" style="background: linear-gradient(135deg, #164e87 0%, #0d2346 100%);" onclick="openRequirementsModal()">
-            <i class="fa-solid fa-list-check"></i>
-            <span>Kelola Syarat Berkas Portal</span>
+            <i class="fa-solid fa-layer-group"></i>
+            <span>Kelola Tahapan & Card Skripsi</span>
           </button>
           <button class="btn-add-student" onclick="openAddStudentModal()">
             <i class="fa-solid fa-user-plus"></i>
@@ -214,7 +217,7 @@
 
     <!-- TAB 3: Pengaturan Narasi & Teks Situs + Live POV Simulator -->
     <div id="tabViewSiteConfig" style="display: none;">
-      <div class="table-card" style="padding: 1.5rem;">
+      <div class="table-card" style="padding: 1.25rem; max-width: 100%; box-sizing: border-box;">
         
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.85rem; flex-wrap: wrap; gap: 0.75rem;">
           <div>
@@ -248,6 +251,32 @@
             <form id="formSiteConfig" onsubmit="handleSaveSiteConfig(event)">
               <div style="display: flex; flex-direction: column; gap: 1rem;">
                 
+                <!-- IDENTITAS DOSEN PEMBIMBING -->
+                <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 0.25rem;">
+                  <h4 style="font-size: 0.9rem; color: #166534; font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.45rem;">
+                    <i class="fa-solid fa-user-tie"></i> Identitas Dosen Pembimbing Skripsi
+                  </h4>
+                  <p style="font-size: 0.75rem; color: #15803d; margin-bottom: 0.75rem;">
+                    Ubah nama dan gelar Anda di sini. Otomatis tersinkronisasi ke seluruh portal mahasiswa dan halaman web.
+                  </p>
+                  
+                  <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label for="cfg_dosen_nama" style="font-size: 0.8rem; font-weight: 700; color: #1e3a8a; display: block; margin-bottom: 0.25rem;">
+                        Nama Lengkap & Gelar Akademik Dosen:
+                      </label>
+                      <input type="text" id="cfg_dosen_nama" class="input-portal-single" placeholder="Contoh: Dr. Ir. Fitrah, M.T." style="padding: 0.55rem 0.85rem; font-weight: 700; background: white;">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label for="cfg_dosen_jabatan" style="font-size: 0.8rem; font-weight: 700; color: #1e3a8a; display: block; margin-bottom: 0.25rem;">
+                        Jabatan / Narasi Peran Pembimbing:
+                      </label>
+                      <input type="text" id="cfg_dosen_jabatan" class="input-portal-single" placeholder="Contoh: Dosen Pembimbing Skripsi" style="padding: 0.55rem 0.85rem; background: white;">
+                    </div>
+                  </div>
+                </div>
+
                 <div class="form-group">
                   <label for="cfg_beranda_header_chip">Badge Header Beranda (Tahun Akademik)</label>
                   <textarea id="cfg_beranda_header_chip" class="auto-expand-textarea" rows="1" placeholder="Contoh: Tahun Akademik 2024/2025 Genap" oninput="syncPovLive()"></textarea>
@@ -610,8 +639,8 @@
     <div class="modal-container modal-container-large">
       <div class="modal-header">
         <div>
-          <h3><i class="fa-solid fa-sliders"></i> Kelola Syarat Dokumen Berkas Skripsi</h3>
-          <span style="font-size: 0.75rem; color: #cbd5e1;">Atur nama portal, deskripsi, serta tambah/edit syarat berkas atau buat tahapan portal baru</span>
+          <h3><i class="fa-solid fa-layer-group"></i> Kelola Tahapan & Card Status Skripsi</h3>
+          <span style="font-size: 0.75rem; color: #cbd5e1;">Atur nama tahapan card, deskripsi, tambah tahapan/card baru, atau edit syarat dokumen</span>
         </div>
         <button class="btn-close-modal" onclick="closeRequirementsModal()">&times;</button>
       </div>
@@ -896,6 +925,6 @@
 
   <!-- Socket.io Client (CDN fallback for Serverless) -->
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  <script src="/js/admin.js"></script>
+  <script src="/js/admin.js?v=2.2"></script>
 </body>
 </html>

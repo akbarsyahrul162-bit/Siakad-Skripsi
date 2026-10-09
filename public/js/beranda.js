@@ -1,4 +1,4 @@
-﻿// ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
 // BERANDA PUBLIK - DIRECTORY & EXAM SCHEDULE CONTROLLER
 // ══════════════════════════════════════════════════════════════
 
@@ -61,8 +61,40 @@ async function loadMahasiswaData() {
   }
 }
 
-// 3. Render Statistik Ringkasan
+// 3. Render Statistik Ringkasan (Dinamis Sesuai Card Tahapan yang Dibuat Dosen)
 function renderStats(stats) {
+  const container = document.getElementById('publicStatsContainer');
+  if (container && Array.isArray(stats.stageCards) && stats.stageCards.length > 0) {
+    let html = `
+      <div class="stat-card">
+        <div class="stat-card-info">
+          <div class="stat-num" id="statTotalStudents">${stats.totalMahasiswa || 0}</div>
+          <div class="stat-lbl">Total Mahasiswa Bimbingan</div>
+        </div>
+        <div class="stat-icon stat-icon-blue">
+          <i class="fa-solid fa-user-graduate"></i>
+        </div>
+      </div>
+    `;
+
+    stats.stageCards.forEach((c) => {
+      html += `
+        <div class="stat-card">
+          <div class="stat-card-info">
+            <div class="stat-num" style="color: ${c.color};">${c.count || 0}</div>
+            <div class="stat-lbl">${escapeHtml(c.label)}</div>
+          </div>
+          <div class="stat-icon" style="background: ${c.bg}; color: ${c.color};">
+            <i class="${c.icon}"></i>
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+    return;
+  }
+
   const elTotal = document.getElementById('statTotalStudents');
   const elSempro = document.getElementById('statSempro');
   const elSemhas = document.getElementById('statSemhas');

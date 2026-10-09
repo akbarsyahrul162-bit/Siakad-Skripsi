@@ -1451,6 +1451,116 @@ body {
   #jadwalListContainer {
     grid-template-columns: 1fr !important;
   }
+
+  /* Optimalisasi Responsif Layar HP (100% Fit & No Horizontal Cutoff) */
+  html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+  .dashboard-container {
+    padding: 0 0.75rem !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+  .table-card {
+    padding: 0.85rem !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Grid Form Narasi & Live POV Simulator di HP */
+  .pov-container-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+  .pov-container-grid > div {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+  .pov-device-frame {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+  .pov-browser-url {
+    max-width: 160px !important;
+  }
+  .pov-switcher-bar {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.35rem !important;
+  }
+  .btn-pov-switch {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 0.45rem 0.65rem !important;
+    font-size: 0.78rem !important;
+  }
+  .auto-expand-textarea {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 0.55rem 0.75rem !important;
+    font-size: 0.82rem !important;
+  }
+
+  /* Panduan Berkas Mahasiswa (Foto 1 - 100% Fit di HP) */
+  .portal-body {
+    padding: 0.85rem !important;
+    box-sizing: border-box !important;
+  }
+  .guide-box {
+    padding: 0.85rem 0.75rem !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+  .guide-box-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.35rem !important;
+  }
+  .file-requirements-list {
+    grid-template-columns: 1fr !important;
+    gap: 0.65rem !important;
+    width: 100% !important;
+  }
+  .file-item {
+    padding: 0.75rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+  .file-naming-guide {
+    flex-wrap: wrap !important;
+    gap: 0.45rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .file-naming-guide span {
+    word-break: break-all !important;
+    overflow-wrap: anywhere !important;
+  }
+  .file-naming-guide code {
+    word-break: break-all !important;
+    overflow-wrap: anywhere !important;
+    font-size: 0.7rem !important;
+    display: inline-block !important;
+    max-width: 100% !important;
+  }
+  .btn-copy-format {
+    margin-left: auto !important;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1462,14 +1572,34 @@ body {
     padding: 2px 6px;
   }
   .brand-title .main-name {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
   }
   .brand-title .sub-name {
-    font-size: 0.58rem;
-    letter-spacing: 0.3px;
+    font-size: 0.56rem;
+    letter-spacing: 0.2px;
   }
   .nav-user-meta {
-    gap: 0.4rem;
+    gap: 0.35rem;
+  }
+  .user-badge .user-sub {
+    display: none !important;
+  }
+  .user-badge .user-name {
+    font-size: 0.78rem !important;
+    max-width: 105px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  .admin-tab-nav {
+    padding: 0.35rem !important;
+    gap: 0.35rem !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  .admin-tab-btn {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.75rem !important;
   }
   .nav-user-meta .btn-primary {
     padding: 0.45rem 0.75rem !important;
@@ -1501,7 +1631,7 @@ body {
     font-size: 0.82rem;
   }
   .dashboard-container {
-    padding: 0 0.5rem;
+    padding: 0 0.5rem !important;
     margin: 1rem auto;
   }
   .admin-stats-row {
@@ -1524,6 +1654,7 @@ body {
   }
   .table-card {
     border-radius: 8px;
+    padding: 0.75rem !important;
   }
 }
 

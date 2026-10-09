@@ -320,17 +320,48 @@ router.post('/verify', async (req, res) => {
   }
 });
 
+async function getPersistedPortalConfig() {
+  try {
+    const configRow = await prisma.siteConfig.findUnique({
+      where: { key: 'portals_config_json' },
+    });
+    if (configRow && configRow.value) {
+      const parsed = JSON.parse(configRow.value);
+      Object.keys(PORTAL_CONFIG).forEach((k) => delete PORTAL_CONFIG[k]);
+      Object.assign(PORTAL_CONFIG, parsed);
+      return PORTAL_CONFIG;
+    }
+  } catch (err) {
+    console.error('Error load persisted portal config:', err);
+  }
+  return PORTAL_CONFIG;
+}
+
+async function savePersistedPortalConfig(newConfig) {
+  try {
+    await prisma.siteConfig.upsert({
+      where: { key: 'portals_config_json' },
+      update: { value: JSON.stringify(newConfig) },
+      create: { key: 'portals_config_json', value: JSON.stringify(newConfig) },
+    });
+  } catch (err) {
+    console.error('Error save persisted portal config:', err);
+  }
+}
+
 // Ambil data konfigurasi persyaratan berkas portal
-router.get('/portals-config', (req, res) => {
+router.get('/portals-config', async (req, res) => {
+  const current = await getPersistedPortalConfig();
   return res.json({
     success: true,
-    portals: PORTAL_CONFIG,
+    portals: current,
   });
 });
 
 // Update persyaratan berkas untuk portal tertentu
-router.put('/portals-config/:portalKey', (req, res) => {
+router.put('/portals-config/:portalKey', async (req, res) => {
   try {
+    await getPersistedPortalConfig();
     const { portalKey } = req.params;
     const { nama, deskripsi, berkas } = req.body;
 
@@ -348,6 +379,9 @@ router.put('/portals-config/:portalKey', (req, res) => {
         formatContoh: String(b.formatContoh || `0${idx + 1}_Dokumen_[NIM].pdf`).trim(),
       }));
     }
+
+    // Simpan permanen ke PostgreSQL
+    await savePersistedPortalConfig(PORTAL_CONFIG);
 
     // Broadcast ke mahasiswa & admin jika ada socket
     const io = req.app.get('io');
@@ -368,8 +402,9 @@ router.put('/portals-config/:portalKey', (req, res) => {
 });
 
 // Tambah Portal Baru
-router.post('/portals-config', (req, res) => {
+router.post('/portals-config', async (req, res) => {
   try {
+    await getPersistedPortalConfig();
     const { nama, deskripsi, berkas } = req.body;
 
     if (!nama || !String(nama).trim()) {
@@ -411,6 +446,9 @@ router.post('/portals-config', (req, res) => {
       berkas: initialDocs,
     };
 
+    // Simpan permanen ke PostgreSQL
+    await savePersistedPortalConfig(PORTAL_CONFIG);
+
     // Broadcast update portal ke semua client
     const io = req.app.get('io');
     if (io) {
@@ -431,8 +469,9 @@ router.post('/portals-config', (req, res) => {
 });
 
 // Hapus Portal
-router.delete('/portals-config/:portalKey', (req, res) => {
+router.delete('/portals-config/:portalKey', async (req, res) => {
   try {
+    await getPersistedPortalConfig();
     const { portalKey } = req.params;
 
     if (!PORTAL_CONFIG[portalKey]) {
@@ -441,6 +480,9 @@ router.delete('/portals-config/:portalKey', (req, res) => {
 
     const deletedNama = PORTAL_CONFIG[portalKey].nama;
     delete PORTAL_CONFIG[portalKey];
+
+    // Simpan permanen ke PostgreSQL
+    await savePersistedPortalConfig(PORTAL_CONFIG);
 
     // Broadcast ke semua client
     const io = req.app.get('io');
