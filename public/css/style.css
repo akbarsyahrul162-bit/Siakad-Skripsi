@@ -84,13 +84,18 @@ body {
   padding: 0;
 }
 
-/* Logo Bosowa di Navbar */
+/* Logo Bosowa di Navbar dengan Background Putih */
 .navbar-logo-img {
   height: 46px;
   width: auto;
   object-fit: contain;
   flex-shrink: 0;
-  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.25));
+  background: #ffffff;
+  padding: 4px 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .brand-section {
@@ -1403,7 +1408,8 @@ body {
     gap: 0.6rem;
   }
   .navbar-logo-img {
-    height: 38px;
+    height: 40px;
+    padding: 3px 8px;
   }
   .brand-title .main-name {
     font-size: 0.95rem;
@@ -1452,7 +1458,8 @@ body {
     padding: 0.5rem 0.75rem;
   }
   .navbar-logo-img {
-    height: 34px;
+    height: 36px;
+    padding: 2px 6px;
   }
   .brand-title .main-name {
     font-size: 0.85rem;
