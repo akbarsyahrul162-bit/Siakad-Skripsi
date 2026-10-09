@@ -2097,8 +2097,7 @@ function syncPovLive() {
   // 2. Login
   setTxt('povLoginJudul', getVal('cfg_login_judul', 'Masuk ke Portal'));
   setTxt('povLoginDeskripsi', getVal('cfg_login_deskripsi', 'Portal Monitoring Skripsi & Verifikasi Berkas'));
-  setTxt('povLoginPetunjukAdmin', getVal('cfg_login_petunjuk_admin', 'Masukkan kata sandi admin12345 untuk masuk ke Dashboard.'));
-  setTxt('povLoginPetunjukMhs', getVal('cfg_login_petunjuk_mhs', 'Masukkan NIM Anda yang sudah didaftarkan dosen.'));
+  setTxt('povLoginPetunjukMhs', getVal('cfg_login_petunjuk_mhs', 'Masukkan nama lengkap NIM Anda'));
   setTxt('povLoginHelpdesk', getVal('cfg_helpdesk_info', 'Butuh aktivasi NIM? Hubungi Helpdesk Akademik Gedung Rektorat Lt. 1.'));
 }
 

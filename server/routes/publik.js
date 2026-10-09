@@ -1,4 +1,4 @@
-﻿const express = require("express");
+const express = require("express");
 const router = express.Router();
 const { PrismaClient } = require("@prisma/client");
 const PORTAL_CONFIG = require("../config/portals");
@@ -16,8 +16,8 @@ router.get("/siteconfig", async (req, res) => {
       beranda_footer: "2026 Portal Akademik Sistem Informasi Skripsi",
       login_judul: "Sistem Pengumpulan & Verifikasi Berkas Skripsi",
       login_deskripsi: "Portal akademik terpadu untuk pengumpulan dan verifikasi berkas Seminar Proposal, Seminar Hasil, dan Ujian Meja / Skripsi.",
-      login_petunjuk_admin: "Masukkan kata sandi admin untuk masuk ke Dashboard Monitoring.",
-      login_petunjuk_mhs: "Masukkan NIM Anda yang sudah didaftarkan oleh dosen di dashboard admin.",
+      login_petunjuk_admin: "",
+      login_petunjuk_mhs: "Masukkan nama lengkap NIM Anda",
       helpdesk_info: "Butuh aktivasi NIM? Hubungi Helpdesk Akademik.",
     };
     Object.keys(defaults).forEach((k) => { if (!(k in result)) result[k] = defaults[k]; });
