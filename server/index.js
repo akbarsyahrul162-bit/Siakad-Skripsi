@@ -54,8 +54,27 @@ const loginLimiter = rateLimit({
 
 app.use('/api/auth/login-dosen', loginLimiter);
 
-// 4. File Statis Frontend
-app.use(express.static(path.join(__dirname, '../public')));
+// 4. File Statis Frontend dengan Cache Optimization
+app.use(express.static(path.join(__dirname, '../public'), {
+  maxAge: '1h',
+  setHeaders: (res, filePath) => {
+    // HTML jangan di-cache agar perubahan aplikasi selalu fresh seketika
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+}));
+
+// Health Check Endpoint (untuk anti-sleep / UptimeRobot / ping monitoring)
+app.get('/api/health', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store');
+  res.json({
+    success: true,
+    status: 'UP',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // Explicit page routes
 app.get('/admin.html', (req, res) => {

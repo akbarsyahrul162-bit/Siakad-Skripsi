@@ -7,6 +7,9 @@ let currentViewingPortals = [];
 let activePortalKey = 'PORTAL_1';
 let activeReqPortalKey = 'PORTAL_1';
 let selectedDecision = null;
+let allJadwalList = [];
+let globalJadwalTypes = [];
+let currentDosenProfile = {};
 
 const STATUS_META = {
   EMPTY: { label: 'Belum Diisi', cls: 'badge-EMPTY', icon: 'fa-regular fa-clock' },
@@ -17,11 +20,167 @@ const STATUS_META = {
 
 document.addEventListener('DOMContentLoaded', () => {
   initSocket();
-  loadStudents();
-  loadJadwalAdmin(false);
-  loadSiteConfigAdmin();
-  loadDosenProfile();
+  const hasCache = restoreAdminCache();
+  if (!hasCache) {
+    renderAdminSkeletons();
+  }
+  fetchAdminBootstrap(false);
 });
+
+// A. Restore data admin instan 0.005 detik dari Local Cache Browser
+function restoreAdminCache() {
+  try {
+    const raw = localStorage.getItem('admin_bootstrap_cache');
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (!data || !data.success) return false;
+
+    if (data.portalsConfig) {
+      globalPortalsConfig = data.portalsConfig;
+      renderTableHeaders();
+    }
+    if (data.profile) {
+      currentDosenProfile = data.profile;
+      renderDosenProfileNavbar(currentDosenProfile);
+    }
+    if (Array.isArray(data.types)) {
+      globalJadwalTypes = data.types;
+      rebuildJadwalTypesMap();
+      populateJadwalJenisDropdown();
+    }
+    if (Array.isArray(data.jadwal)) {
+      allJadwalList = data.jadwal;
+      renderJadwalTable(allJadwalList);
+      populateJadwalMhsDropdown();
+    }
+    if (Array.isArray(data.mahasiswa)) {
+      allStudents = data.mahasiswa;
+      updateStats(data);
+      handleSearchFilter();
+    }
+    if (data.siteconfig) {
+      applyAdminSiteConfig(data.siteconfig);
+    }
+    return true;
+  } catch (e) {
+    console.warn('Gagal membaca cache admin:', e);
+    return false;
+  }
+}
+
+// B. Render Skeleton Rows jika belum ada cache (pengunjung pertama)
+function renderAdminSkeletons() {
+  const tbody = document.getElementById('studentTableBody');
+  if (tbody) {
+    let rowsHtml = '';
+    for (let i = 0; i < 5; i++) {
+      rowsHtml += `
+        <tr>
+          <td style="text-align: center;"><span class="skeleton-shimmer skeleton-text" style="width: 20px;"></span></td>
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <div class="skeleton-shimmer skeleton-circle"></div>
+              <div>
+                <span class="skeleton-shimmer skeleton-text" style="width: 150px; display: block;"></span>
+                <span class="skeleton-shimmer skeleton-text" style="width: 90px; display: block;"></span>
+              </div>
+            </div>
+          </td>
+          <td><span class="skeleton-shimmer skeleton-text" style="width: 100px; display: block;"></span></td>
+          <td><span class="skeleton-shimmer skeleton-text" style="width: 220px; display: block;"></span></td>
+          <td><span class="skeleton-shimmer skeleton-text" style="width: 100px; display: block;"></span></td>
+          <td><span class="skeleton-shimmer skeleton-text" style="width: 100px; display: block;"></span></td>
+          <td><span class="skeleton-shimmer skeleton-text" style="width: 100px; display: block;"></span></td>
+          <td style="text-align: right;"><span class="skeleton-shimmer skeleton-text" style="width: 60px; display: inline-block;"></span></td>
+        </tr>
+      `;
+    }
+    tbody.innerHTML = rowsHtml;
+  }
+}
+
+// C. High-Speed Admin Bootstrap Fetcher (1 Round-Trip HTTP Request)
+async function fetchAdminBootstrap(showLoading = false) {
+  const tbody = document.getElementById('studentTableBody');
+  if (showLoading && tbody && allStudents.length === 0) {
+    renderAdminSkeletons();
+  }
+
+  try {
+    const res = await fetch('/api/admin/bootstrap', {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        window.location.href = '/index.html';
+        return;
+      }
+      throw new Error('Gagal mengambil data bootstrap admin');
+    }
+
+    const data = await res.json();
+    if (data.success) {
+      localStorage.setItem('admin_bootstrap_cache', JSON.stringify(data));
+
+      if (data.portalsConfig) {
+        globalPortalsConfig = data.portalsConfig;
+        renderTableHeaders();
+      }
+      if (data.profile) {
+        currentDosenProfile = data.profile;
+        renderDosenProfileNavbar(currentDosenProfile);
+      }
+      if (Array.isArray(data.types)) {
+        globalJadwalTypes = data.types;
+        rebuildJadwalTypesMap();
+        populateJadwalJenisDropdown();
+      }
+      if (Array.isArray(data.jadwal)) {
+        allJadwalList = data.jadwal;
+        renderJadwalTable(allJadwalList);
+        populateJadwalMhsDropdown();
+      }
+      if (Array.isArray(data.mahasiswa)) {
+        allStudents = data.mahasiswa;
+        updateStats(data);
+        handleSearchFilter();
+      }
+      if (data.siteconfig) {
+        applyAdminSiteConfig(data.siteconfig);
+      }
+    }
+  } catch (err) {
+    console.error('Error fetch admin bootstrap:', err);
+  }
+}
+
+function applyAdminSiteConfig(cfg) {
+  if (!cfg) return;
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el && val !== undefined) el.value = val;
+  };
+
+  setVal('cfg_dosen_nama', currentDosenProfile.nama || 'Dr. Ir. Fitrah, M.T.');
+  setVal('cfg_dosen_jabatan', currentDosenProfile.jabatan || 'Dosen Pembimbing Skripsi');
+  setVal('cfg_beranda_header_chip', cfg.beranda_header_chip || 'Tahun Akademik 2024/2025 Genap');
+  setVal('cfg_beranda_title', cfg.beranda_title || 'Portal Monitoring Skripsi & Akademik Bimbingan');
+  setVal('cfg_beranda_subtitle', cfg.beranda_subtitle || 'Sistem pemantauan berkas seminar proposal, seminar hasil, dan ujian skripsi secara transparan, terintegrasi, dan real-time.');
+  setVal('cfg_beranda_footer', cfg.beranda_footer || 'Sistem Informasi Manajemen Skripsi & Verifikasi Berkas Terpadu • Program Studi Psikologi');
+  setVal('cfg_login_judul', cfg.login_judul || 'Sistem Pengumpulan & Verifikasi Berkas Skripsi');
+  setVal('cfg_login_deskripsi', cfg.login_deskripsi || 'Portal akademik terpadu untuk pengumpulan dan verifikasi berkas Seminar Proposal, Seminar Hasil, dan Ujian Meja / Skripsi.');
+  setVal('cfg_login_petunjuk_admin', cfg.login_petunjuk_admin || 'Masukkan kata sandi admin12345 (atau username admin) untuk masuk ke Dashboard Monitoring.');
+  setVal('cfg_login_petunjuk_mhs', cfg.login_petunjuk_mhs || 'Masukkan nama lengkap NIM Anda');
+  setVal('cfg_helpdesk_info', cfg.helpdesk_info || 'Butuh aktivasi NIM? Hubungi Helpdesk Akademik Gedung Rektorat Lt. 1.');
+
+  setTimeout(() => {
+    document.querySelectorAll('#formSiteConfig .auto-expand-textarea').forEach(autoResizeTextarea);
+  }, 50);
+
+  if (typeof syncPovLive === 'function') {
+    syncPovLive();
+  }
+}
 
 // Auto-expand textarea helper
 function autoResizeTextarea(el) {
@@ -136,57 +295,9 @@ function getAuthHeaders(extra = {}) {
   return headers;
 }
 
-// Load students directory from server
-async function loadStudents(showLoading = true) {
-  const tbody = document.getElementById('studentTableBody');
-  if (showLoading && tbody) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="10" style="text-align: center; padding: 3rem; color: var(--text-muted);">
-          <i class="fa-solid fa-spinner fa-spin"></i> Memuat data mahasiswa...
-        </td>
-      </tr>
-    `;
-  }
-
-  try {
-    const res = await fetch('/api/admin/mahasiswa', {
-      headers: getAuthHeaders(),
-    });
-    if (!res.ok) {
-      if (res.status === 401 || res.status === 403) {
-        window.location.href = '/index.html';
-        return;
-      }
-      throw new Error('Gagal mengambil data');
-    }
-
-    const data = await res.json();
-    allStudents = data.mahasiswa || [];
-    if (data.portalsConfig) {
-      globalPortalsConfig = data.portalsConfig;
-    }
-
-    // Render dynamic table headers
-    renderTableHeaders();
-
-    // Update Quick Stats
-    updateStats(data);
-
-    // Apply Filter & Search
-    handleSearchFilter();
-  } catch (err) {
-    console.error(err);
-    if (tbody) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="10" style="text-align: center; padding: 2rem; color: #dc2626;">
-            Gagal memuat data mahasiswa. Silakan muat ulang halaman.
-          </td>
-        </tr>
-      `;
-    }
-  }
+// Load students directory from server (Delegated to High-Speed Bootstrap)
+async function loadStudents(showLoading = false) {
+  return fetchAdminBootstrap(showLoading);
 }
 
 // Render Table Headers Dynamically
@@ -1499,46 +1610,9 @@ function populateJadwalMhsDropdown(selectedId = null) {
   });
 }
 
-// Load Jadwal dari Server
-async function loadJadwalAdmin(showLoading = true) {
-  const tbody = document.getElementById('jadwalTableBody');
-  if (showLoading && tbody) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="8" style="text-align: center; padding: 3rem; color: var(--text-muted);">
-          <i class="fa-solid fa-spinner fa-spin"></i> Memuat jadwal ujian & wisuda...
-        </td>
-      </tr>
-    `;
-  }
-
-  try {
-    const res = await fetch('/api/admin/jadwal', {
-      headers: getAuthHeaders(),
-    });
-
-    if (res.status === 401 || res.status === 403) {
-      window.location.href = '/login.html';
-      return;
-    }
-
-    const data = await res.json();
-    if (data.success) {
-      if (Array.isArray(data.types) && data.types.length > 0) {
-        globalJadwalTypes = data.types;
-        rebuildJadwalTypesMap();
-      }
-      populateJadwalJenisDropdown();
-      allJadwalList = data.jadwal || [];
-      renderJadwalTable(allJadwalList);
-      populateJadwalMhsDropdown();
-    }
-  } catch (err) {
-    console.error('Error load jadwal admin:', err);
-    if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #ef4444; padding: 2rem;">Gagal memuat data jadwal ujian.</td></tr>`;
-    }
-  }
+// Load Jadwal dari Server (Delegated to High-Speed Bootstrap)
+async function loadJadwalAdmin(showLoading = false) {
+  return fetchAdminBootstrap(showLoading);
 }
 
 // Render Tabel Jadwal
@@ -2068,44 +2142,9 @@ async function handleDeleteJadwal(id, namaMhs) {
 // MANAJEMEN SITECONFIG (EDIT NARASI/KONTEN WEB)
 // ══════════════════════════════════════════════════════════════
 
-// Load SiteConfig ke Form Admin
+// Load SiteConfig ke Form Admin (Delegated to High-Speed Bootstrap)
 async function loadSiteConfigAdmin() {
-  try {
-    const res = await fetch('/api/admin/siteconfig', {
-      headers: getAuthHeaders(),
-    });
-
-    if (res.status === 401 || res.status === 403) return;
-
-    const data = await res.json();
-    if (data.success && data.config) {
-      const cfg = data.config;
-      const setVal = (id, val) => {
-        const el = document.getElementById(id);
-        if (el && val !== undefined) el.value = val;
-      };
-
-      setVal('cfg_dosen_nama', currentDosenProfile.nama || 'Dr. Ir. Fitrah, M.T.');
-      setVal('cfg_dosen_jabatan', currentDosenProfile.jabatan || 'Dosen Pembimbing Skripsi');
-      setVal('cfg_beranda_header_chip', cfg.beranda_header_chip || 'Tahun Akademik 2024/2025 Genap');
-      setVal('cfg_beranda_title', cfg.beranda_title || 'Portal Monitoring Skripsi & Akademik Bimbingan');
-      setVal('cfg_beranda_subtitle', cfg.beranda_subtitle || 'Sistem pemantauan berkas seminar proposal, seminar hasil, dan ujian skripsi secara transparan, terintegrasi, dan real-time.');
-      setVal('cfg_beranda_footer', cfg.beranda_footer || 'Sistem Informasi Manajemen Skripsi & Verifikasi Berkas Terpadu • Program Studi Psikologi');
-      setVal('cfg_login_judul', cfg.login_judul || 'Sistem Pengumpulan & Verifikasi Berkas Skripsi');
-      setVal('cfg_login_deskripsi', cfg.login_deskripsi || 'Portal akademik terpadu untuk pengumpulan dan verifikasi berkas Seminar Proposal, Seminar Hasil, dan Ujian Meja / Skripsi.');
-      setVal('cfg_login_petunjuk_admin', cfg.login_petunjuk_admin || 'Masukkan kata sandi admin12345 (atau username admin) untuk masuk ke Dashboard Monitoring.');
-      setVal('cfg_login_petunjuk_mhs', cfg.login_petunjuk_mhs || 'Masukkan nama lengkap NIM Anda');
-      setVal('cfg_helpdesk_info', cfg.helpdesk_info || 'Butuh aktivasi NIM? Hubungi Helpdesk Akademik Gedung Rektorat Lt. 1.');
-
-      setTimeout(() => {
-        document.querySelectorAll('#formSiteConfig .auto-expand-textarea').forEach(autoResizeTextarea);
-      }, 50);
-
-      syncPovLive();
-    }
-  } catch (err) {
-    console.error('Error load siteconfig admin:', err);
-  }
+  return fetchAdminBootstrap(false);
 }
 
 // Simpan Semua Narasi SiteConfig & Profil Dosen
@@ -2219,19 +2258,7 @@ function getDosenInitials(nama) {
 }
 
 async function loadDosenProfile() {
-  try {
-    const res = await fetch('/api/admin/profile', {
-      headers: getAuthHeaders(),
-    });
-    if (res.status === 401 || res.status === 403) return;
-    const data = await res.json();
-    if (data.success && data.profile) {
-      currentDosenProfile = data.profile;
-      renderDosenProfileNavbar(currentDosenProfile);
-    }
-  } catch (err) {
-    console.error('Error load dosen profile:', err);
-  }
+  return fetchAdminBootstrap(false);
 }
 
 function renderDosenProfileNavbar(prof) {

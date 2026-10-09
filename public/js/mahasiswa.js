@@ -13,8 +13,31 @@ const STATUS_META = {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   initSocket();
-  loadPortalData();
+  const hasCache = restoreMahasiswaCache();
+  loadPortalData(!hasCache);
 });
+
+// A. Restore data portal instan 0.005 detik dari Local Cache Browser
+function restoreMahasiswaCache() {
+  try {
+    const raw = localStorage.getItem('mhs_portal_cache');
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (!data || !data.mahasiswa || !data.portals) return false;
+
+    currentStudent = data.mahasiswa;
+    currentPortals = data.portals;
+
+    renderStudentProfile(currentStudent);
+    renderMahasiswaJadwal(data.jadwal || []);
+    renderProgressTracker(currentPortals);
+    renderPortals(currentPortals);
+    return true;
+  } catch (e) {
+    console.warn('Gagal membaca cache mahasiswa:', e);
+    return false;
+  }
+}
 
 // Setup Socket.io
 function initSocket() {
@@ -108,7 +131,7 @@ function getAuthHeaders(extra = {}) {
 // Load data from server
 async function loadPortalData(showLoading = true) {
   const container = document.getElementById('portalsContainer');
-  if (showLoading && container) {
+  if (showLoading && container && !currentStudent) {
     container.innerHTML = `
       <div style="text-align: center; padding: 3rem; background: white; border-radius: 12px;">
         <i class="fa-solid fa-spinner fa-spin fa-2x" style="color: var(--primary-blue);"></i>
@@ -130,6 +153,7 @@ async function loadPortalData(showLoading = true) {
     }
 
     const data = await res.json();
+    localStorage.setItem('mhs_portal_cache', JSON.stringify(data));
     currentStudent = data.mahasiswa;
     currentPortals = data.portals;
 

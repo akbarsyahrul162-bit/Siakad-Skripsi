@@ -864,5 +864,85 @@ router.put('/profile', async (req, res) => {
   }
 });
 
+// ⚡ HIGH-SPEED ADMIN BOOTSTRAP ENDPOINT (1 Single HTTP Request for Entire Admin Dashboard)
+router.get('/bootstrap', async (req, res) => {
+  try {
+    const [mahasiswaList, jadwalList, configs, jadwalTypes] = await Promise.all([
+      prisma.mahasiswa.findMany({
+        include: {
+          submissions: true,
+        },
+        orderBy: {
+          nim: 'asc',
+        },
+      }),
+      prisma.jadwalUjian.findMany({
+        include: {
+          mahasiswa: {
+            select: { id: true, nim: true, nama: true, prodi: true, angkatan: true },
+          },
+        },
+        orderBy: {
+          tanggal: 'asc',
+        },
+      }),
+      prisma.siteConfig.findMany(),
+      getJadwalTypesFromDb(),
+    ]);
+
+    const portalKeys = Object.keys(PORTAL_CONFIG);
+    let pendingCount = 0;
+
+    const data = mahasiswaList.map((mhs) => {
+      const subMap = {};
+      mhs.submissions.forEach((s) => {
+        subMap[s.portal] = s;
+        if (s.status === 'PENDING') pendingCount++;
+      });
+
+      const portals = {};
+      portalKeys.forEach((k) => {
+        portals[k] = subMap[k] || { status: 'EMPTY', driveUrl: null };
+      });
+
+      return {
+        id: mhs.id,
+        nim: mhs.nim,
+        nama: mhs.nama,
+        angkatan: mhs.angkatan,
+        prodi: mhs.prodi,
+        judulSkripsi: mhs.judulSkripsi,
+        fotoProfil: mhs.fotoProfil,
+        createdAt: mhs.createdAt,
+        portals,
+      };
+    });
+
+    const cfgMap = {};
+    configs.forEach((c) => { cfgMap[c.key] = c.value; });
+
+    const profile = {
+      nama: cfgMap['dosen_nama'] || 'Dr. Ir. Fitrah, M.T.',
+      jabatan: cfgMap['dosen_jabatan'] || 'Dosen Pembimbing Skripsi',
+      foto: cfgMap['dosen_foto'] || null,
+    };
+
+    return res.json({
+      success: true,
+      totalMahasiswa: mahasiswaList.length,
+      pendingCount,
+      portalsConfig: PORTAL_CONFIG,
+      mahasiswa: data,
+      jadwal: jadwalList,
+      types: jadwalTypes,
+      siteconfig: cfgMap,
+      profile,
+    });
+  } catch (error) {
+    console.error('Error get admin bootstrap:', error);
+    return res.status(500).json({ success: false, message: 'Gagal memuat bootstrap admin.' });
+  }
+});
+
 module.exports = router;
 

@@ -7,60 +7,124 @@ let allJadwal = [];
 let globalJadwalTypesMap = {};
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadSiteConfig();
-  loadMahasiswaData();
-  loadJadwalData();
+  const hasCache = restoreBerandaCache();
+  if (!hasCache) {
+    renderBerandaSkeletons();
+  }
+  fetchBerandaBootstrap();
   initRealtimeSync();
 });
 
-// 1. Muat Konfigurasi Teks/Narasi Dinamis dari Server
-async function loadSiteConfig() {
+// A. Restore data instan 0.005 detik dari Local Cache Browser
+function restoreBerandaCache() {
   try {
-    const res = await fetch('/api/publik/siteconfig');
-    const data = await res.json();
-    if (data.success && data.config) {
-      const cfg = data.config;
-      if (cfg.beranda_header_chip) {
-        const el = document.getElementById('txtHeaderChip');
-        if (el) el.textContent = cfg.beranda_header_chip;
-      }
-      if (cfg.beranda_title) {
-        const el = document.getElementById('txtMainTitle');
-        if (el) el.textContent = cfg.beranda_title;
-        document.title = cfg.beranda_title + ' - SIAKAD';
-      }
-      if (cfg.beranda_subtitle) {
-        const el = document.getElementById('txtSubtitle');
-        if (el) el.textContent = cfg.beranda_subtitle;
-      }
-      if (cfg.beranda_footer) {
-        const el = document.getElementById('footerText');
-        if (el) el.textContent = cfg.beranda_footer;
-      }
+    const raw = localStorage.getItem('beranda_bootstrap_cache');
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (!data || !data.success) return false;
+
+    if (data.config) applySiteConfig(data.config);
+    if (data.types && Array.isArray(data.types)) {
+      globalJadwalTypesMap = {};
+      data.types.forEach((t) => { globalJadwalTypesMap[t.id] = t; });
     }
-  } catch (err) {
-    console.error('Gagal memuat siteconfig:', err);
+    if (data.stats) renderStats(data.stats);
+    if (Array.isArray(data.mahasiswa)) {
+      allStudents = data.mahasiswa;
+      renderStudentTable(allStudents);
+    }
+    if (Array.isArray(data.jadwal)) {
+      allJadwal = data.jadwal;
+      renderJadwalList(allJadwal);
+    }
+    return true;
+  } catch (e) {
+    console.warn('Gagal membaca cache beranda:', e);
+    return false;
   }
 }
 
-// 2. Muat Data Direktori Mahasiswa & Statistik
-async function loadMahasiswaData() {
-  try {
-    const res = await fetch('/api/publik/mahasiswa');
-    const data = await res.json();
-    if (data.success) {
-      allStudents = data.mahasiswa || [];
-      renderStats(data.stats || {});
-      renderStudentTable(allStudents);
+// B. Render Skeleton Shimmer Placeholder saat pengunjung baru (belum ada cache)
+function renderBerandaSkeletons() {
+  const tbody = document.getElementById('publicStudentTableBody');
+  if (tbody) {
+    let rowsHtml = '';
+    for (let i = 0; i < 5; i++) {
+      rowsHtml += `
+        <tr>
+          <td style="text-align: center;"><span class="skeleton-shimmer skeleton-text" style="width: 20px;"></span></td>
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <div class="skeleton-shimmer skeleton-circle"></div>
+              <div>
+                <span class="skeleton-shimmer skeleton-text" style="width: 140px; display: block;"></span>
+                <span class="skeleton-shimmer skeleton-text" style="width: 80px; display: block;"></span>
+              </div>
+            </div>
+          </td>
+          <td><span class="skeleton-shimmer skeleton-text" style="width: 90px; display: block;"></span></td>
+          <td><span class="skeleton-shimmer skeleton-text" style="width: 200px; display: block;"></span></td>
+          <td><span class="skeleton-shimmer skeleton-text" style="width: 110px; display: block;"></span></td>
+          <td><span class="skeleton-shimmer skeleton-text" style="width: 100px; display: block;"></span></td>
+        </tr>
+      `;
     }
-  } catch (err) {
-    console.error('Gagal memuat data mahasiswa:', err);
-    const tbody = document.getElementById('publicStudentTableBody');
-    if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #ef4444; padding: 2rem;">Gagal memuat data direktori. Silakan muat ulang halaman.</td></tr>`;
-    }
+    tbody.innerHTML = rowsHtml;
   }
 }
+
+// C. Terapkan Konfigurasi Teks/Branding Dinamis
+function applySiteConfig(cfg) {
+  if (!cfg) return;
+  if (cfg.beranda_header_chip) {
+    const el = document.getElementById('txtHeaderChip');
+    if (el) el.textContent = cfg.beranda_header_chip;
+  }
+  if (cfg.beranda_title) {
+    const el = document.getElementById('txtMainTitle');
+    if (el) el.textContent = cfg.beranda_title;
+    document.title = cfg.beranda_title + ' - SIAKAD';
+  }
+  if (cfg.beranda_subtitle) {
+    const el = document.getElementById('txtSubtitle');
+    if (el) el.textContent = cfg.beranda_subtitle;
+  }
+  if (cfg.beranda_footer) {
+    const el = document.getElementById('footerText');
+    if (el) el.textContent = cfg.beranda_footer;
+  }
+}
+
+// D. High-Speed Bootstrap Fetcher (1 Round-Trip HTTP Request)
+async function fetchBerandaBootstrap() {
+  try {
+    const res = await fetch('/api/publik/bootstrap');
+    const data = await res.json();
+    if (data.success) {
+      localStorage.setItem('beranda_bootstrap_cache', JSON.stringify(data));
+      if (data.config) applySiteConfig(data.config);
+      if (data.types && Array.isArray(data.types)) {
+        globalJadwalTypesMap = {};
+        data.types.forEach((t) => { globalJadwalTypesMap[t.id] = t; });
+      }
+      if (data.stats) renderStats(data.stats);
+      if (Array.isArray(data.mahasiswa)) {
+        allStudents = data.mahasiswa;
+        filterStudents();
+      }
+      if (Array.isArray(data.jadwal)) {
+        allJadwal = data.jadwal;
+        renderJadwalList(allJadwal);
+      }
+    }
+  } catch (err) {
+    console.error('Gagal fetch bootstrap publik:', err);
+  }
+}
+
+// Backward-compatible fallback helpers
+async function loadSiteConfig() { return fetchBerandaBootstrap(); }
+async function loadMahasiswaData() { return fetchBerandaBootstrap(); }
 
 // 3. Render Statistik Ringkasan (Dinamis Sesuai Card Tahapan yang Dibuat Dosen)
 function renderStats(stats) {
@@ -319,10 +383,8 @@ function initRealtimeSync() {
   const debouncedRefresh = () => {
     if (refreshTimer) clearTimeout(refreshTimer);
     refreshTimer = setTimeout(() => {
-      loadMahasiswaData();
-      loadJadwalData();
-      loadSiteConfig();
-    }, 300);
+      fetchBerandaBootstrap();
+    }, 250);
   };
 
   // Dengarkan setiap event pembaruan
