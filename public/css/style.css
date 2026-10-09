@@ -45,6 +45,11 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
+html {
+  overflow-x: hidden;
+  width: 100%;
+}
+
 body {
   background-color: var(--bg-academic);
   color: var(--text-main);
@@ -52,6 +57,9 @@ body {
   display: flex;
   flex-direction: column;
   line-height: 1.5;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 /* ===================================================
@@ -1048,6 +1056,12 @@ body {
   overflow: hidden;
 }
 
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
 .academic-table {
   width: 100%;
   border-collapse: collapse;
@@ -1356,10 +1370,11 @@ body {
   color: var(--text-muted);
 }
 
-/* Responsive */
+/* Responsive Design System (100% Fit HP & Desktop) */
 @media (max-width: 900px) {
   .login-gateway-card {
     grid-template-columns: 1fr;
+    max-width: 480px;
   }
   .login-banner-side {
     display: none;
@@ -1374,6 +1389,134 @@ body {
   .profile-card {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .academic-navbar {
+    padding: 0.6rem 1rem;
+  }
+  .navbar-container {
+    gap: 0.75rem;
+  }
+  .brand-section {
+    gap: 0.6rem;
+  }
+  .navbar-logo-img {
+    height: 38px;
+  }
+  .brand-title .main-name {
+    font-size: 0.95rem;
+  }
+  .brand-title .sub-name {
+    font-size: 0.65rem;
+  }
+  .hero-public {
+    padding: 2.25rem 1rem 2.5rem;
+  }
+  .hero-title {
+    font-size: 1.6rem;
+  }
+  .hero-subtitle {
+    font-size: 0.92rem;
+    margin-bottom: 1.5rem;
+  }
+  .dashboard-container {
+    padding: 0 1rem;
+    margin: 1.5rem auto;
+  }
+  .toolbar-filters {
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    gap: 0.6rem;
+  }
+  .toolbar-filters .search-box,
+  .toolbar-filters .select-filter {
+    width: 100%;
+  }
+  .select-filter {
+    width: 100%;
+  }
+  .admin-stats-row {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.85rem;
+  }
+  #jadwalListContainer {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .academic-navbar {
+    padding: 0.5rem 0.75rem;
+  }
+  .navbar-logo-img {
+    height: 34px;
+  }
+  .brand-title .main-name {
+    font-size: 0.85rem;
+  }
+  .brand-title .sub-name {
+    font-size: 0.58rem;
+    letter-spacing: 0.3px;
+  }
+  .nav-user-meta {
+    gap: 0.4rem;
+  }
+  .nav-user-meta .btn-primary {
+    padding: 0.45rem 0.75rem !important;
+    font-size: 0.75rem !important;
+  }
+  .hero-public {
+    padding: 1.75rem 0.75rem 2rem;
+  }
+  .hero-chip {
+    font-size: 0.72rem;
+    padding: 0.25rem 0.65rem;
+  }
+  .hero-title {
+    font-size: 1.35rem;
+  }
+  .hero-subtitle {
+    font-size: 0.82rem;
+  }
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.5rem;
+  }
+  .btn-hero-primary,
+  .btn-hero-secondary {
+    width: 100%;
+    justify-content: center;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.82rem;
+  }
+  .dashboard-container {
+    padding: 0 0.5rem;
+    margin: 1rem auto;
+  }
+  .admin-stats-row {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+  .stat-card {
+    padding: 0.85rem 1rem;
+  }
+  .stat-card-info .stat-num {
+    font-size: 1.4rem;
+  }
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+  }
+  .toolbar-card {
+    padding: 0.75rem;
+  }
+  .table-card {
+    border-radius: 8px;
   }
 }
 
