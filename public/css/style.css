@@ -214,14 +214,14 @@ body {
 
 .login-gateway-card {
   width: 100%;
-  max-width: 980px;
+  max-width: 460px;
   background: var(--bg-card);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 10px 30px rgba(13, 35, 70, 0.12);
   overflow: hidden;
-  display: grid;
-  grid-template-columns: 1.15fr 1fr;
+  display: block;
   border: 1px solid var(--border-color);
+  margin: 0 auto;
 }
 
 .login-banner-side {

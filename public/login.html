@@ -91,38 +91,18 @@
   <main class="login-page-wrapper">
     <div class="login-gateway-card">
       
-      <!-- Left Side: Campus Identity & Announcement -->
-      <div class="login-banner-side">
-        <div class="banner-head">
-          <span class="academic-chip" id="loginChip">
-            <i class="fa-solid fa-building-columns"></i> Tahun Akademik 2024/2025 Genap
-          </span>
-          <h1 id="loginJudul">Sistem Pengumpulan & Verifikasi Berkas Skripsi</h1>
-          <p id="loginDeskripsi">
-            Portal akademik terpadu untuk pengumpulan dan verifikasi berkas Seminar Proposal, Seminar Hasil, dan Ujian Meja / Skripsi.
-          </p>
-
-          <div class="academic-announcements">
-            <div class="announcement-title">
-              <i class="fa-solid fa-circle-info"></i> Petunjuk Autentikasi
-            </div>
-            <div class="announcement-text">
-              • <strong>Dosen / Admin:</strong> <span id="loginPetunjukDosen">Masukkan kata sandi <code>admin12345</code> (atau username <code>admin</code>) untuk masuk ke Dashboard Monitoring.</span><br><br>
-              • <strong>Mahasiswa:</strong> <span id="loginPetunjukMhs">Masukkan NIM Anda yang sudah didaftarkan oleh dosen di dashboard admin.</span>
-            </div>
-          </div>
+      <!-- 1 Single Clean Portal Login Form Card -->
+      <div class="login-form-side" style="padding: 2.5rem 2.25rem;">
+        <div class="form-header" style="text-align: center; margin-bottom: 1.5rem;">
+          <img src="/img/Logo-Fakultas-Psikologi.png" alt="Logo Fakultas Psikologi Universitas Bosowa" style="height: 68px; margin-bottom: 0.75rem; object-fit: contain;">
+          <h2 id="loginJudul" style="font-size: 1.35rem; font-weight: 800; color: var(--primary-navy); margin-bottom: 0.35rem;">Masuk ke Portal</h2>
+          <p id="loginDeskripsi" style="font-size: 0.85rem; color: #64748b;">Portal Monitoring Skripsi & Verifikasi Berkas</p>
         </div>
 
-        <div class="banner-foot" id="loginFooter">
-          © 2026 Bagian Akademik & Fakultas • Sistem Informasi Akademik
-        </div>
-      </div>
-
-      <!-- Right Side: 1 Single Portal Login Form -->
-      <div class="login-form-side">
-        <div class="form-header">
-          <h2>Masuk ke Portal</h2>
-          <p>Gunakan NIM Anda atau Kredensial Dosen / Admin</p>
+        <!-- Petunjuk Singkat Autentikasi -->
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.65rem 0.85rem; font-size: 0.76rem; color: #64748b; margin-bottom: 1.25rem;">
+          <div>• <strong>Mahasiswa:</strong> <span id="loginPetunjukMhs">Masukkan NIM Anda yang terdaftar.</span></div>
+          <div style="margin-top: 0.25rem;">• <strong>Dosen/Admin:</strong> <span id="loginPetunjukDosen">Masukkan username admin dan kata sandi.</span></div>
         </div>
 
         <!-- Alert Notification Box -->
