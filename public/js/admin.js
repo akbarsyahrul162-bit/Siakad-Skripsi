@@ -8,8 +8,19 @@ let activePortalKey = 'PORTAL_1';
 let activeReqPortalKey = 'PORTAL_1';
 let selectedDecision = null;
 let allJadwalList = [];
-let globalJadwalTypes = [];
-let currentDosenProfile = {};
+let globalJadwalTypes = [
+  { id: 'SEMPRO', nama: 'Seminar Proposal (Sempro)', badgeColor: '#0369a1', badgeBg: '#e0f2fe' },
+  { id: 'SEMHAS', nama: 'Seminar Hasil (Semhas)', badgeColor: '#b45309', badgeBg: '#fef3c7' },
+  { id: 'SIDANG', nama: 'Sidang Skripsi / Ujian Tutup', badgeColor: '#15803d', badgeBg: '#dcfce7' },
+  { id: 'WISUDA', nama: 'Wisuda Sarjana & Yudisium', badgeColor: '#7e22ce', badgeBg: '#f3e8ff' },
+];
+let globalJadwalTypesMap = {};
+let currentDosenProfile = {
+  nama: 'Dr. Ir. Fitrah, M.T.',
+  jabatan: 'Dosen Pembimbing Skripsi',
+  foto: null,
+};
+let pendingDosenPhotoBase64 = null;
 
 const STATUS_META = {
   EMPTY: { label: 'Belum Diisi', cls: 'badge-EMPTY', icon: 'fa-regular fa-clock' },
@@ -1633,15 +1644,6 @@ function switchAdminTab(tabName) {
 // ══════════════════════════════════════════════════════════════
 // MANAJEMEN JADWAL UJIAN & WISUDA
 // ══════════════════════════════════════════════════════════════
-let allJadwalList = [];
-let globalJadwalTypes = [
-  { id: 'SEMPRO', nama: 'Seminar Proposal (Sempro)', badgeColor: '#0369a1', badgeBg: '#e0f2fe' },
-  { id: 'SEMHAS', nama: 'Seminar Hasil (Semhas)', badgeColor: '#b45309', badgeBg: '#fef3c7' },
-  { id: 'SIDANG', nama: 'Sidang Skripsi / Ujian Tutup', badgeColor: '#15803d', badgeBg: '#dcfce7' },
-  { id: 'WISUDA', nama: 'Wisuda Sarjana & Yudisium', badgeColor: '#7e22ce', badgeBg: '#f3e8ff' },
-];
-let globalJadwalTypesMap = {};
-
 function rebuildJadwalTypesMap() {
   globalJadwalTypesMap = {};
   globalJadwalTypes.forEach((t) => {
@@ -2309,13 +2311,6 @@ async function handleSaveSiteConfig(e) {
 // ══════════════════════════════════════════════════════════════
 // MANAJEMEN PROFIL DOSEN (NAMA, JABATAN & FOTO PROFIL HD)
 // ══════════════════════════════════════════════════════════════
-let currentDosenProfile = {
-  nama: 'Dr. Ir. Fitrah, M.T.',
-  jabatan: 'Dosen Pembimbing Skripsi',
-  foto: null,
-};
-let pendingDosenPhotoBase64 = null;
-
 function getDosenInitials(nama) {
   if (!nama) return 'DF';
   // Bersihkan gelar akademik umum agar inisial fokus ke nama
