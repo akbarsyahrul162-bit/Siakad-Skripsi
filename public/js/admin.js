@@ -112,58 +112,132 @@ function renderAdminSkeletons() {
 }
 
 // C. High-Speed Admin Bootstrap Fetcher (1 Round-Trip HTTP Request)
+function applyBootstrapPayload(data) {
+  if (!data || !data.success) return;
+  try {
+    localStorage.setItem('admin_bootstrap_cache', JSON.stringify(data));
+  } catch (e) {}
+
+  if (data.portalsConfig) {
+    globalPortalsConfig = data.portalsConfig;
+    renderTableHeaders();
+  }
+  if (data.profile) {
+    currentDosenProfile = data.profile;
+    renderDosenProfileNavbar(currentDosenProfile);
+  }
+  if (Array.isArray(data.types)) {
+    globalJadwalTypes = data.types;
+    rebuildJadwalTypesMap();
+    populateJadwalJenisDropdown();
+  }
+  if (Array.isArray(data.jadwal)) {
+    allJadwalList = data.jadwal;
+    renderJadwalTable(allJadwalList);
+    populateJadwalMhsDropdown();
+  }
+  if (Array.isArray(data.mahasiswa)) {
+    allStudents = data.mahasiswa;
+    populateAngkatanDatalist('listAngkatanAdmin');
+    updateStats(data);
+    handleSearchFilter();
+  }
+  if (data.siteconfig) {
+    applyAdminSiteConfig(data.siteconfig);
+  }
+}
+
 async function fetchAdminBootstrap(showLoading = false) {
   const tbody = document.getElementById('studentTableBody');
   if (showLoading && tbody && allStudents.length === 0) {
     renderAdminSkeletons();
   }
 
+  // 1. Coba Single Round-Trip Bootstrap API dengan timeout 8 detik
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+
   try {
     const res = await fetch('/api/admin/bootstrap', {
       headers: getAuthHeaders(),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
+
+    if (res.status === 401 || res.status === 403) {
+      window.location.href = '/login.html';
+      return;
+    }
+
     if (!res.ok) {
-      if (res.status === 401 || res.status === 403) {
-        window.location.href = '/index.html';
-        return;
-      }
-      throw new Error('Gagal mengambil data bootstrap admin');
+      throw new Error(`HTTP ${res.status}: Gagal memuat bootstrap`);
     }
 
     const data = await res.json();
     if (data.success) {
-      localStorage.setItem('admin_bootstrap_cache', JSON.stringify(data));
+      applyBootstrapPayload(data);
+      return;
+    }
+    throw new Error(data.message || 'Respons bootstrap tidak sukses');
+  } catch (err) {
+    clearTimeout(timeoutId);
+    console.warn('Bootstrap API timeout atau gagal, mencoba fallback individual API...', err.message);
 
-      if (data.portalsConfig) {
-        globalPortalsConfig = data.portalsConfig;
-        renderTableHeaders();
+    // 2. Fallback Otomatis ke rute individual jika /bootstrap mengalami cold-boot delay
+    try {
+      const [resMhs, resJadwal] = await Promise.all([
+        fetch('/api/admin/mahasiswa', { headers: getAuthHeaders() }),
+        fetch('/api/admin/jadwal', { headers: getAuthHeaders() }),
+      ]);
+
+      if (resMhs.status === 401 || resMhs.status === 403) {
+        window.location.href = '/login.html';
+        return;
       }
-      if (data.profile) {
-        currentDosenProfile = data.profile;
-        renderDosenProfileNavbar(currentDosenProfile);
+
+      if (resMhs.ok) {
+        const mhsData = await resMhs.json();
+        if (mhsData.success) {
+          if (mhsData.portalsConfig) {
+            globalPortalsConfig = mhsData.portalsConfig;
+            renderTableHeaders();
+          }
+          if (Array.isArray(mhsData.mahasiswa)) {
+            allStudents = mhsData.mahasiswa;
+            populateAngkatanDatalist('listAngkatanAdmin');
+            updateStats(mhsData);
+            handleSearchFilter();
+          }
+        }
       }
-      if (Array.isArray(data.types)) {
-        globalJadwalTypes = data.types;
-        rebuildJadwalTypesMap();
-        populateJadwalJenisDropdown();
+
+      if (resJadwal.ok) {
+        const jadwalData = await resJadwal.json();
+        if (jadwalData.success && Array.isArray(jadwalData.jadwal)) {
+          allJadwalList = jadwalData.jadwal;
+          renderJadwalTable(allJadwalList);
+          populateJadwalMhsDropdown();
+        }
       }
-      if (Array.isArray(data.jadwal)) {
-        allJadwalList = data.jadwal;
-        renderJadwalTable(allJadwalList);
-        populateJadwalMhsDropdown();
-      }
-      if (Array.isArray(data.mahasiswa)) {
-        allStudents = data.mahasiswa;
-        populateAngkatanDatalist('listAngkatanAdmin');
-        updateStats(data);
-        handleSearchFilter();
-      }
-      if (data.siteconfig) {
-        applyAdminSiteConfig(data.siteconfig);
+    } catch (fallbackErr) {
+      console.error('Fallback API juga gagal:', fallbackErr);
+
+      // Jika benar-benar belum ada data dari cache dan server offline
+      if (allStudents.length === 0 && tbody) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" style="text-align: center; padding: 2.5rem 1rem; color: #64748b;">
+              <i class="fa-solid fa-cloud-bolt" style="font-size: 2rem; color: #ef4444; margin-bottom: 0.75rem; display: block;"></i>
+              <strong style="color: #1e293b; font-size: 0.95rem;">Koneksi ke Server Memerlukan Waktu Lebih Lama</strong>
+              <p style="font-size: 0.82rem; margin: 0.4rem 0 1rem;">Database serverless sedang melakukan inisialisasi awal. Silakan coba muat ulang data.</p>
+              <button onclick="fetchAdminBootstrap(true)" class="btn-primary" style="margin: 0 auto; width: auto; font-size: 0.82rem; padding: 0.5rem 1.25rem;">
+                <i class="fa-solid fa-rotate-right"></i> Coba Muat Ulang Sekarang
+              </button>
+            </td>
+          </tr>
+        `;
       }
     }
-  } catch (err) {
-    console.error('Error fetch admin bootstrap:', err);
   }
 }
 

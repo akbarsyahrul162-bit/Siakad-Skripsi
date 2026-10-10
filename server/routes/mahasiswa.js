@@ -1,10 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const PORTAL_CONFIG = require('../config/portals');
-
-const prisma = new PrismaClient();
 
 // Semua rute ini hanya untuk akun MAHASISWA
 router.use(requireAuth);

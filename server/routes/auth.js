@@ -2,10 +2,8 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../db');
 const { JWT_SECRET, requireAuth } = require('../middleware/auth');
-
-const prisma = new PrismaClient();
 
 // 1 PINTU MASUK TERPADU (Username & Password: Dosen via sandi 'admin12345' / 'admin', Mahasiswa via NIM Whitelist)
 router.post('/login-unified', async (req, res) => {

@@ -1,8 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../db");
 const PORTAL_CONFIG = require("../config/portals");
-const prisma = new PrismaClient();
 
 router.get("/siteconfig", async (req, res) => {
   try {
